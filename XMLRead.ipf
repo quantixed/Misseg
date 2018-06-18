@@ -1,4 +1,4 @@
-#pragma TextEncoding = "MacRoman"
+#pragma TextEncoding = "UTF-8"
 #pragma rtGlobals=3		// Use modern global access method and strict wave access.
 
 // Front-end dialog to allow user to pick XML file and also to pick image - optional
@@ -17,14 +17,16 @@ Function WorkflowForXMLAnalysis()
 	RotateAndSitUp()
 	DistanceCalculations()
 	MakeWavesForGraphAndPlot(0)
-	MakeTheLayouts()
+	MakeTheLayouts("dist",5,3)
+	MakeTheLayouts("spher",5,3)
 End
 
 Function WorkflowForXMLAnalysisDir()
 	CleanSlate()
 	WorkOnDirectory()
 	CollectAllMeasurements()
-	MakeTheLayouts()
+	MakeTheLayouts("dist",5,3)
+	MakeTheLayouts("spher",5,3)
 End
 
 // Needs XMLUtils XOP
@@ -215,6 +217,9 @@ Function RotateAndSitUp()
 	Variable nWaves = ItemsInList(wList)
 	String wName,newName
 	
+	// determine length c (point c to point p1) 
+	Variable cc = sqrt(wx^2 + wy^2 + wz^2)
+	
 	Variable i
 	
 	for (i = 0; i < nWaves; i += 1)
@@ -227,10 +232,12 @@ Function RotateAndSitUp()
 		Wave M_Product
 		MatrixMultiply M_Product, yRotationMatrix // rotate second axis
 		Duplicate/O M_Product, $newName
+		newName = "rn_" + wName // name of normalised rotated pointset
+		Duplicate/O M_Product, $newName
+		Wave w1 = $newName
+		w1 /= cc
 	endfor
 	
-	// determine length c (point c to point p1) 
-	Variable cc = sqrt(wx^2 + wy^2 + wz^2)
 	// determine length a (furthest Euclidean distance to point c)
 	WAVE/Z r_mat_1
 	if(!WaveExists(r_Mat_1))
@@ -296,7 +303,7 @@ Function DistanceCalculations()
 			continue
 		endif
 		newName = ReplaceString("r_",wName,"dist_")
-		Make/O/N=(nRows,6) $newName
+		Make/O/N=(nRows,10) $newName
 		Wave m1 = $newName
 		// calculate distances
 		// 0 = distance to plane i.e. y = 0
@@ -319,6 +326,15 @@ Function DistanceCalculations()
 		m1[][4] = ((m0[p][0]^2 + m0[p][1]^2) / acWave[0]^2) + (m0[p][2]^2 / acWave[1]^2)
 		// 5 = normalised distance to plane i.e. distance to y = 0 normalised by c-p distance
 		m1[][5] = abs(m0[p][2]) / acWave[1]
+		// Now calculate Spherical Coordinates
+		// 6 = r
+		m1[][6] = sqrt(m0[p][0]^2 + m0[p][1]^2 + m0[p][2]^2)
+		// 7 = theta (polar angle)
+		m1[][7] = acos(abs(m0[p][2]) / m1[p][6]) // abs will give +ve x,y and 0,pi/2 theta
+		// 8 = phi (azimuthal)
+		m1[][8] = atan2(abs(m0[p][1]),abs(m0[p][0])) // abs gives 0,pi/2 theta
+		// 9 = r (normalized)
+		m1[][9] = m1[p][6] / abs(acWave[1])
 	endfor
 	ClassifyMisaligned()
 End
@@ -378,13 +394,15 @@ End
 
 STATIC Function MakeWavesForGraphAndPlot(ii)
 	Variable ii // iteration number
+	
+	// THE DISTANCE PLOT - distance from point to plane
 	String wList = "dist_Mat_1;dist_Mat_4;dist_Mat_5;"
 	Variable nWaves = ItemsInList(wList)
 	String wName, newName
 	Variable nRows
-	String plotName = "plot_" + num2str(ii)
+	String plotName = "dist_" + num2str(ii)
 	KillWindow/Z $plotName
-	Display/N=$plotName
+	Display/N=$plotName/HIDE=1
 	
 	Variable i
 	
@@ -403,14 +421,58 @@ STATIC Function MakeWavesForGraphAndPlot(ii)
 		Wave m1 = $newName
 		// x value is i + noise
 		m1[][0] = i + gnoise(0.1)
-		m1[][1] = m0[p][5]
+		m1[][1] = m0[p][9]
 		AppendToGraph/W=$plotName m1[][1] vs m1[][0]
 	endfor
 	Make/O/N=3 xPos=p
 	Make/O/N=3/T xLabel={"Aligned","Misaligned","Misaligned\rEnsheathed"}
 	ModifyGraph/W=$plotName userticks(bottom)={xPos,xLabel}
-	TidyUpGraph(plotName)
-End
+	SetAxis/W=$plotName/A/N=1/E=1 left
+	Label/W=$plotName left "Normalized distance to plate"
+	ModifyGraph/W=$plotName mode=3,marker=19,mrkThick=0,rgb=(0,0,0,32768)
+	SetAxis/W=$plotName bottom -0.5,2.5
+	
+	// NOW MAKE SPHERICAL COORD GRAPHS
+	wList = "dist_Mat_1;dist_Mat_2;dist_Mat_4;dist_Mat_5;"
+	nWaves = ItemsInList(wList)
+	plotName = "spher_" + num2str(ii)
+	String tName // for tracename
+	// make colorWave
+	Make/O/N=(4,4) cW={{0,0,0,32768},{65535,0,0,32768},{2,39321,1,32768},{0,0,65535,32768}}
+	MatrixTranspose cW
+	KillWindow/Z $plotName
+	Display/N=$plotName/HIDE=1
+	
+	for (i = 0; i < nWaves; i += 1)
+		wName = StringFromList(i,wList)
+		Wave m0 = $wName
+		if(!WaveExists(m0))
+			continue
+		endif
+		nRows = DimSize(m0,0)
+		if(nRows == 0)
+			continue
+		endif
+		tName = "c7_" + wName
+		AppendToGraph/W=$plotName/L=lo m0[][7]/TN=$tName vs m0[][9]
+		ModifyGraph/W=$plotName rgb($tName)=(cW[i][0],cW[i][1],cW[i][2],cW[i][3])
+		tName = "c8_" + wName
+		AppendToGraph/W=$plotName/L=hi m0[][8]/TN=$tName vs m0[][9]
+		ModifyGraph/W=$plotName rgb($tName)=(cW[i][0],cW[i][1],cW[i][2],cW[i][3])
+	endfor
+	ModifyGraph/W=$plotName mode=3,marker=19,mrkThick=0
+	ModifyGraph/W=$plotName standoff=0,axisEnab(lo)={0,0.45},axisEnab(hi)={0.55,1},freePos(lo)=0,freePos(hi)=0
+	SetAxis/W=$plotName/A/N=1/E=1 bottom
+	SetAxis/W=$plotName lo 0,pi/2
+	SetAxis/W=$plotName hi 0,pi/2
+	Label/W=$plotName bottom "r"
+	Label/W=$plotName lo "θ"
+	Label/W=$plotName hi "φ"
+	Make/O/N=3 yPos={0,pi/4,pi/2}
+	Make/O/N=3/T yLabel={"0","π/4","π/2"}
+	ModifyGraph/W=$plotName userticks(lo)={yPos,yLabel}
+	ModifyGraph/W=$plotName userticks(hi)={yPos,yLabel}
+End	
 
 ////////////////////////////////////////////////////////////////////////
 // Work on many files from a directory
@@ -466,7 +528,8 @@ STATIC Function CollectAllMeasurements()
 	endfor
 	
 	// we need to concatenate these waves into root (p_all_*)
-	String targetWaveList = "p_Mat_1;p_Mat_4;p_Mat_5;"
+	String targetWaveList = "dist_Mat_1;dist_Mat_2;dist_Mat_4;dist_Mat_5;"
+	targetWavelist += "rn_Mat_1;rn_Mat_2;rn_Mat_4;rn_Mat_5;"
 	Variable nTargets = ItemsInList(targetWaveList)
 	String targetName, tList, conName
 	
@@ -487,99 +550,99 @@ STATIC Function CollectAllMeasurements()
 		endfor
 		// if there were no waves of that type in any of the data folders
 		if(ItemsInList(modtList) > 0)
-			conName = ReplaceString("p_",targetName,"p_All_")
+			conName = "all_" + targetName
 			Concatenate/O/NP=0 modtList, $conName
 		endif
 	endfor
-	
-//	// redefine targetList for summation of each folder into row of sum_* wave
-//	targetWaveList = "Img_VsArea;Img_VsPerimeter;Img_MtPeriTotal;"
-//	nTargets = ItemsInList(targetWaveList)
-//	String wName,tName
-//	for(i = 0; i < nTargets; i += 1)
-//		targetName = StringFromList(i,targetWaveList)
-//		wName = "root:" + ReplaceString("Img_",targetName,"Sum_")
-//		Make/O/N=(numDataFolders) $wName
-//		Wave sumW0 = $wName
-//		tList = ReplaceString("thisWave",wList,targetName)
-//		for(j = 0; j < numDataFolders; j += 1)
-//			tName = StringFromList(j,tList)
-//			Wave tW0 = $tName
-//			sumW0[j] = sum(tW0)
-//		endfor
-//	endfor
-//	
-//	// now count the number of Vs and Mt waves in each folder
-//	Make/O/N=(numDataFolders) Count_Vs,Count_Mt
-//	targetName = "Img_VsArea"
-//	tList = ReplaceString("thisWave",wList,targetName)
-//	for(i = 0; i < numDataFolders; i += 1)
-//		tName = StringFromList(i,tList)
-//		Wave tW0 = $tName
-//		Count_Vs[i] = numpnts(tW0)
-//	endfor
-//	targetName = "Img_MtPeriTotal"
-//	tList = ReplaceString("thisWave",wList,targetName)
-//	for(i = 0; i < numDataFolders; i += 1)
-//		tName = StringFromList(i,tList)
-//		Wave tW0 = $tName
-//		Count_Mt[i] = numpnts(tW0)
-//	endfor
-//	WAVE/Z Sum_MtPeriTotal,Sum_VsPerimeter
-//	MatrixOp/O Ratio_CountVsPerCountMito = Count_Vs / Count_Mt
-//	MatrixOp/O Ratio_CountVsPerSumMitoPerim = Count_Vs / Sum_MtPeriTotal
-//	MatrixOp/O Ratio_SumVsPerimPerSumMitoPerim = Sum_VsPerimeter / Count_Mt
-//	
-//	// now we will pull the Img_ClusterSizes into a matrix
-//	targetName = "Img_ClusterSizes"
-//	tList = ReplaceString("thisWave",wList,targetName)
-//	conName = ReplaceString("Img_",targetName,"All_")
-//	Concatenate/O/NP=1 tList, tempMat
-//	// Img_ClusterSizes lists the number of clusters containing n vesicles, so we'll find the average
-//	MatrixOp/O/NTHR=0 $conName = sumRows(tempMat) / numCols(tempMat)
 End
 
-STATIC Function MakeTheLayouts()
-	DoWindow/K allPlotLayout
-	NewLayout/N=allPlotLayout
-	String modList = WinList("plot_*",";","WIN:1")
+STATIC Function MakeTheLayouts(prefix,nRow,nCol)
+	String prefix
+	Variable nRow, nCol
+	
+	String layoutName = "all"+prefix+"Layout"
+	DoWindow/K $layoutName
+	NewLayout/N=$layoutName
+	String modList = WinList(prefix+"_*",";","WIN:1")
 	Variable nWindows = ItemsInList(modList)
-	Variable PlotsPerPage = 15 // 5 x 3
+	Variable PlotsPerPage = nRow * nCol
 	String plotName
-	String exString = "Tile/A=(" + num2str(ceil(PlotsPerPage/3)) + ",3)"
+	String exString = "Tile/A=(" + num2str(ceil(PlotsPerPage/nCol)) + ","+num2str(nCol)+")"
 	
 	Variable i,pgNum=1
 	
 	for(i = 0; i < nWindows; i += 1)
 		plotName = StringFromList(i,modList)
-		AppendLayoutObject/W=allPlotLayout/PAGE=(pgnum) graph $plotName
+		AppendLayoutObject/W=$layoutName/PAGE=(pgnum) graph $plotName
 		if(mod((i + 1),PlotsPerPage) == 0 || i == (nWindows -1)) // if page is full or it's the last plot
-			LayoutPageAction/W=allPlotLayout size(-1)=(595, 842), margins(-1)=(18, 18, 18, 18)
-			ModifyLayout/W=allPlotLayout units=0
-			ModifyLayout/W=allPlotLayout frame=0,trans=1
+			LayoutPageAction/W=$layoutName size(-1)=(595, 842), margins(-1)=(18, 18, 18, 18)
+			ModifyLayout/W=$layoutName units=0
+			ModifyLayout/W=$layoutName frame=0,trans=1
 			Execute /Q exString
 			if (i != nWindows -1)
-				LayoutPageAction/W=allPlotLayout appendpage
+				LayoutPageAction/W=$layoutName appendpage
 				pgNum += 1
-				LayoutPageAction/W=allPlotLayout page=(pgNum)
+				LayoutPageAction/W=$layoutName page=(pgNum)
 			endif
 		endif
 	endfor
-	SavePICT/PGR=(1,-1)/E=-2/W=(0,0,0,0) as "plots.pdf"
+	String fileName = layoutName + ".pdf"
+	SavePICT/PGR=(1,-1)/E=-2/W=(0,0,0,0) as fileName
 End
+
+Function MakeTheGizmos()
+	SetDataFolder root:
+	String wList = WaveList("all_rn_*",";","")
+	Variable nWaves = ItemsInList(wList)
+	String wName, newName
+	Variable nRowsOctant
+	Variable i
+	
+	for(i = 0; i < nWaves; i += 1)
+		wName = StringFromList(i,wList)
+		newName = ReplaceString("all_rn_",wName,"all_rnOct_") // for the upper octant
+		Duplicate/O $wName, $newName
+		Wave w0 = $newName
+		w0[][] = abs(w0[p][q])
+		newName = ReplaceString("all_rn_",wName,"all_rnCube_") // for the whole cube
+		nRowsOctant = dimsize(w0,0)
+		Make/O/N=(nRowsOctant*8,3) $newName
+		Wave w1 = $newName
+		w1[][] = w0[mod(p,nRowsOctant)][q]
+		MakeCube(w1)
+	endfor
+	
+	String gizList = "dataset;octant;cube;",gizName
+	Variable nGiz = ItemsInList(gizList)
+	String modList = wList + ReplaceString("all_rn_",wList,"all_rnOct_") + ReplaceString("all_rn_",wList,"all_rnCube_")
+	
+	for(i = 0; i < nGiz; i += 1)
+		gizName = StringFromList(i,gizList)
+		KillWindow/Z $gizName
+		NewGizmo/N=$gizName
+		Wave gW1 = $StringFromList(i*4+0,modList)
+		Wave gW2 = $StringFromList(i*4+1,modList)
+		Wave gW4 = $StringFromList(i*4+2,modList)
+		Wave gW5 = $StringFromList(i*4+3,modList)
+		AppendToGizmo/N=$gizName/D Scatter=gW1,name=scatter1
+		AppendToGizmo/N=$gizName/D Scatter=gW2,name=scatter2
+		AppendToGizmo/N=$gizName/D Scatter=gW4,name=scatter4
+		AppendToGizmo/N=$gizName/D Scatter=gW5,name=scatter5
+ 		ModifyGizmo/N=$gizName ModifyObject=scatter1,objectType=scatter,property={ size,0.2}
+ 		ModifyGizmo/N=$gizName ModifyObject=scatter2,objectType=scatter,property={ size,0.2}
+ 		ModifyGizmo/N=$gizName ModifyObject=scatter4,objectType=scatter,property={ size,0.2}
+ 		ModifyGizmo/N=$gizName ModifyObject=scatter5,objectType=scatter,property={ size,0.2}
+		ModifyGizmo/N=$gizName ModifyObject=scatter1,objectType=scatter,property={ color,0,0,0,0.5}
+		ModifyGizmo/N=$gizName ModifyObject=scatter2,objectType=scatter,property={ color,1,0,0,1}
+		ModifyGizmo/N=$gizName ModifyObject=scatter4,objectType=scatter,property={ color,3.0518e-05,0.6,1.5259e-05,1}
+		ModifyGizmo/N=$gizName ModifyObject=scatter5,objectType=scatter,property={ color,0,0,1,1}
+	endfor
+End
+
 
 ////////////////////////////////////////////////////////////////////////
 // Utility functions
 ////////////////////////////////////////////////////////////////////////
-
-STATIC Function TidyUpGraph(plotName)
-	String plotName
-	SetAxis/A/N=1/E=1 left
-	Label left "Normalized distance to plate"
-	ModifyGraph mode=3,marker=19,mrkThick=0,rgb=(0,0,0,32768)
-	SetAxis bottom -0.5,2.5
-End
-
 
 STATIC Function/WAVE SetupParamWaves()
 	Make/O/N=(5)/T ContourDescW = {"Kinetochores Plate","Spindle Poles","BackGround","Misaligned Non-ensheathed","Misaligned Ensheathed"}
@@ -612,4 +675,20 @@ STATIC Function CleanSlate()
 			KillDataFolder $name		
 		endif
 	endfor
+End
+
+STATIC Function MakeCube(m0)
+	Wave m0
+	Variable nRows = dimSize(m0,0)/8
+	// make x
+	Make/O/N=(nRows)/FREE ca=1
+	Make/O/N=(nRows)/FREE cb=-1
+	Concatenate/O/NP=0/FREE {ca,ca,ca,ca,cb,cb,cb,cb},c0
+	//make y
+	Concatenate/O/NP=0/FREE {ca,cb,ca,cb,ca,cb,ca,cb},c1
+	//make z
+	Concatenate/O/NP=0/FREE {ca,ca,cb,cb,ca,ca,cb,cb},c2
+	//make mat
+	Concatenate/O/NP=1/FREE {c0,c1,c2},octMat
+	m0[][] = m0[p][q] * octMat[p][q]
 End
