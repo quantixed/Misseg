@@ -27,6 +27,7 @@ Function WorkflowForXMLAnalysisDir()
 	CollectAllMeasurements()
 	MakeTheLayouts("dist",5,3)
 	MakeTheLayouts("spher",5,3)
+	MakeTheGizmos()
 End
 
 // Needs XMLUtils XOP
@@ -624,18 +625,22 @@ Function MakeTheGizmos()
 		Wave gW2 = $StringFromList(i*4+1,modList)
 		Wave gW4 = $StringFromList(i*4+2,modList)
 		Wave gW5 = $StringFromList(i*4+3,modList)
-		AppendToGizmo/N=$gizName/D Scatter=gW1,name=scatter1
-		AppendToGizmo/N=$gizName/D Scatter=gW2,name=scatter2
-		AppendToGizmo/N=$gizName/D Scatter=gW4,name=scatter4
+		// add in reverse order
 		AppendToGizmo/N=$gizName/D Scatter=gW5,name=scatter5
+		AppendToGizmo/N=$gizName/D Scatter=gW4,name=scatter4
+		AppendToGizmo/N=$gizName/D Scatter=gW2,name=scatter2
+		AppendToGizmo/N=$gizName/D Scatter=gW1,name=scatter1
  		ModifyGizmo/N=$gizName ModifyObject=scatter1,objectType=scatter,property={ size,0.2}
  		ModifyGizmo/N=$gizName ModifyObject=scatter2,objectType=scatter,property={ size,0.2}
  		ModifyGizmo/N=$gizName ModifyObject=scatter4,objectType=scatter,property={ size,0.2}
  		ModifyGizmo/N=$gizName ModifyObject=scatter5,objectType=scatter,property={ size,0.2}
-		ModifyGizmo/N=$gizName ModifyObject=scatter1,objectType=scatter,property={ color,0,0,0,0.5}
+		ModifyGizmo/N=$gizName ModifyObject=scatter1,objectType=scatter,property={ color,0,0,0,0.2}
 		ModifyGizmo/N=$gizName ModifyObject=scatter2,objectType=scatter,property={ color,1,0,0,1}
-		ModifyGizmo/N=$gizName ModifyObject=scatter4,objectType=scatter,property={ color,3.0518e-05,0.6,1.5259e-05,1}
-		ModifyGizmo/N=$gizName ModifyObject=scatter5,objectType=scatter,property={ color,0,0,1,1}
+		ModifyGizmo/N=$gizName ModifyObject=scatter4,objectType=scatter,property={ color,0,1,0,0.5}
+		ModifyGizmo/N=$gizName ModifyObject=scatter5,objectType=scatter,property={ color,0,0,1,0.5}
+		ModifyGizmo/N=$gizName insertDisplayList=0, attribute=blendFunc0
+		AppendToGizmo/N=$gizName attribute blendFunction={770,771},name=blendFunc0
+		ModifyGizmo/N=$gizName insertDisplayList=0, opName=enableBlend, operation=enable, data=3042
 	endfor
 End
 
