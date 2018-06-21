@@ -23,7 +23,10 @@ End
 
 Function WorkflowForXMLAnalysisDir()
 	CleanSlate()
-	WorkOnDirectory()
+	Variable okvar = WorkOnDirectory()
+	if(okvar < 0)
+		return -1
+	endif
 	CollectAllMeasurements()
 	MakeTheLayouts("dist",5,3)
 	MakeTheLayouts("spher",5,3)
@@ -86,7 +89,7 @@ end
 
 // Deal with duplicate points
 STATIC Function DealWithDuplicates()
-	WAVE/Z Mat_1, Mat_4, Mat_5
+	WAVE/Z Mat_1, Mat_2, Mat_4, Mat_5
 	Variable nPoints0,nPoints1 // in pointset
 	Variable counter=0
 	Variable i,j
@@ -104,7 +107,7 @@ STATIC Function DealWithDuplicates()
 		endfor
 	endfor
 	if(counter > 0)
-		print "Deleted", counter, "points from Mat_1 - clash with Mat_4"
+		print "Deleted", counter, "points from Mat_1 - clash with Mat_4 (", GetDataFolder(0) ,")"
 	endif
 	// Mat_5 has precedence over Mat_1
 	nPoints0 = dimsize(Mat_5,0)
@@ -120,7 +123,7 @@ STATIC Function DealWithDuplicates()
 		endfor
 	endfor
 	if(counter > 0)
-		print "Deleted", counter, "points from Mat_1 - clash with Mat_5"
+		print "Deleted", counter, "points from Mat_1 - clash with Mat_5 (", GetDataFolder(0) ,")"
 	endif
 	// Mat_1 clashes with itself
 	nPoints0 = dimsize(Mat_1,0)
@@ -147,7 +150,14 @@ STATIC Function DealWithDuplicates()
 		endfor
 	endfor
 	if(counter > 0)
-		print "Deleted", counter, "points from Mat_1 - clash with Mat_1"
+		print "Deleted", counter, "points from Mat_1 - clash with Mat_1 (", GetDataFolder(0) ,")"
+	endif
+	// too many points in Mat_2
+	nPoints0 = dimsize(Mat_2,0)
+	if(nPoints0 > 2)
+		// assume that 1st two rows are genuine (the code works on this basis)
+		DeletePoints 2,(nPoints0 - 2), Mat_2
+		print "Deleted", nPoints0 - 2, "points from Mat_1 - too many points (", GetDataFolder(0) ,")"
 	endif
 End
 
@@ -614,7 +624,7 @@ Function MakeTheGizmos()
 	endfor
 	
 	String gizList = "dataset;octant;cube;",gizName
-	Variable nGiz = ItemsInList(gizList)
+	Variable nGiz = ItemsInList(gizList), bigNum
 	String modList = wList + ReplaceString("all_rn_",wList,"all_rnOct_") + ReplaceString("all_rn_",wList,"all_rnCube_")
 	
 	for(i = 0; i < nGiz; i += 1)
@@ -631,7 +641,7 @@ Function MakeTheGizmos()
 		AppendToGizmo/N=$gizName/D Scatter=gW2,name=scatter2
 		AppendToGizmo/N=$gizName/D Scatter=gW1,name=scatter1
  		ModifyGizmo/N=$gizName ModifyObject=scatter1,objectType=scatter,property={ size,0.2}
- 		ModifyGizmo/N=$gizName ModifyObject=scatter2,objectType=scatter,property={ size,0.2}
+ 		ModifyGizmo/N=$gizName ModifyObject=scatter2,objectType=scatter,property={ size,0.4}
  		ModifyGizmo/N=$gizName ModifyObject=scatter4,objectType=scatter,property={ size,0.2}
  		ModifyGizmo/N=$gizName ModifyObject=scatter5,objectType=scatter,property={ size,0.2}
 		ModifyGizmo/N=$gizName ModifyObject=scatter1,objectType=scatter,property={ color,0,0,0,0.2}
@@ -641,6 +651,15 @@ Function MakeTheGizmos()
 		ModifyGizmo/N=$gizName insertDisplayList=0, attribute=blendFunc0
 		AppendToGizmo/N=$gizName attribute blendFunction={770,771},name=blendFunc0
 		ModifyGizmo/N=$gizName insertDisplayList=0, opName=enableBlend, operation=enable, data=3042
+		bigNum = max(wavemax(gW1),wavemax(gW2),wavemax(gW4),wavemax(gW5))
+		bigNum = max(bigNum,abs(min(wavemin(gW1),wavemin(gW2),wavemin(gW4),wavemin(gW5))))+0.1
+		if(i == 1)
+			ModifyGizmo/N=$gizName setOuterBox={-0.1,bigNum,-0.1,bigNum,-0.1,bigNum}
+		else
+			ModifyGizmo/N=$gizName setOuterBox={-bigNum,bigNum,-bigNum,bigNum,-bigNum,bigNum}
+		endif
+		ModifyGizmo/N=$gizName scalingOption=0
+		ModifyGizmo/N=$gizName setQuaternion={0.5,0.5,0.5,0.5}
 	endfor
 End
 
@@ -659,7 +678,7 @@ End
 
 STATIC Function CleanSlate()
 	SetDataFolder root:
-	String fullList = WinList("*", ";","WIN:7")
+	String fullList = WinList("*", ";","WIN:65543")
 	Variable allItems = ItemsInList(fullList)
 	String name
 	Variable i
