@@ -518,13 +518,14 @@ STATIC Function LoadImageAndAnalyse(ImageDiskFolderName,ImageFileName)
 	endif
 	Variable nCh = 4 // hard coded channel number
 	// Rearrange the image. Upon load, channels are arrayed consecutively
+	// will be x y z c
 	if(RejigImage(OriginalImage,nCh) != 1)
 		DoAlert/T="Problem" 0, "Image rearrangement did not execute."
 		return -1
 	else
 		Wave ImgMat
 	endif
-	KillWaves/Z OriginalImage
+//	KillWaves/Z OriginalImage
 	
 	// declare the waves from a previous load
 	WAVE/Z mat_1,mat_2,mat_3,mat_4,mat_5
@@ -535,12 +536,12 @@ STATIC Function LoadImageAndAnalyse(ImageDiskFolderName,ImageFileName)
 		WAVE bgW = MakeBgWave(imgMat,mat_3)
 	endif
 	// subtract background values from signed 16-bit ImgMat
-	ImgMat[][][][] -= bgW[0][r]
-	MeasureIntensities(mat_1,imgMat)
-	MeasureIntensities(mat_2,imgMat)
-	MeasureIntensities(mat_4,imgMat)
-	MeasureIntensities(mat_5,imgMat)
-	KillWaves/Z imgMat
+	ImgMat[][][][] -= bgW[0][s]
+	MeasureIntensities(mat_1,imgMat,4)
+	MeasureIntensities(mat_2,imgMat,4)
+	MeasureIntensities(mat_4,imgMat,4)
+	MeasureIntensities(mat_5,imgMat,4)
+//	KillWaves/Z imgMat
 End
 
 STATIC Function RejigImage(ImageMat,nCh)
@@ -551,8 +552,8 @@ STATIC Function RejigImage(ImageMat,nCh)
 		return -1
 	endif
 	// 16-bit signed not unsigned!
-	Make/O/N=(dimSize(imageMat,0),dimSize(imageMat,1),nCh,nFrames/nCh)/W ImgMat
-	ImgMat[][][][] = ImageMat[p][q][floor(r/nCh)][(r*nCh) + mod(r,nCh)]
+	Make/O/N=(dimSize(imageMat,0),dimSize(imageMat,1),nFrames/nCh,nCh)/W ImgMat
+	ImgMat[][][][] = ImageMat[p][q][(r * nCh) + mod(s,nCh)]
 	return 1
 End
 
@@ -610,7 +611,7 @@ End
 Function MeasureIntensities(objToMeasure,ImageMat,rr)
 	Wave/Z objToMeasure,ImageMat
 	Variable rr // radius
-	if(!WaveExists(objToMeasure)
+	if(!WaveExists(objToMeasure))
 		return -1
 	endif
 	Variable nPoints = DimSize(objToMeasure,0)
