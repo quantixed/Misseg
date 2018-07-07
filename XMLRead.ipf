@@ -7,6 +7,7 @@
 Menu "Macros"
 	"Misseg One File...", /Q, WorkflowForXMLAnalysis()
 	"Misseg whole directory...", /Q, WorkflowForXMLAnalysisDir()
+	"Image analysis on directory...", /Q, WorkflowForImageAnalysisDir()
 End
 
 Function WorkflowForXMLAnalysis()
@@ -31,6 +32,14 @@ Function WorkflowForXMLAnalysisDir()
 	MakeTheLayouts("dist",5,3)
 	MakeTheLayouts("spher",5,3)
 	MakeTheGizmos()
+End
+
+Function WorkflowForImageAnalysisDir()
+	CleanSlate()
+	Variable okvar = WorkOnDirectoryIA()
+	if(okvar < 0)
+		return -1
+	endif
 End
 
 // Needs XMLUtils XOP
@@ -84,6 +93,13 @@ Function ReadXML(pathName,fileName)
 		while (counter < 2)
 		MatrixTranspose m0
 	endfor
+	// store the name of original image in a textwave called fNameWave
+	XPathStr0 = "/CellCounter_Marker_File/Image_Properties/Image_Filename"
+	XMLwaveFmXpath(fileID,XPathStr0,"","")
+	Make/O/N=(1)/T fNameWave
+	// cannot assume first row of M_XMLcontent holds filename
+	fNameWave = M_XMLcontent[DimSize(M_XMLcontent,0)-1]
+	// finally close the XML file
 	xmlclosefile(fileID,0)
 end
 
@@ -208,7 +224,7 @@ Function RotateAndSitUp()
 		DoAlert/T="Problem" 0, "No Mat_2 wave"
 		return -1
 	endif
-	// find spindle midpoint, c. Stor in cWave
+	// find spindle midpoint, c. Store in cWave
 	Make/O/N=(1,3) cWave
 	cWave[0][0] = (Mat_2[0][0] + Mat_2[1][0]) / 2
 	cWave[0][1] = (Mat_2[0][1] + Mat_2[1][1]) / 2
@@ -483,7 +499,180 @@ STATIC Function MakeWavesForGraphAndPlot(ii)
 	Make/O/N=3/T yLabel={"0","π/4","π/2"}
 	ModifyGraph/W=$plotName userticks(lo)={yPos,yLabel}
 	ModifyGraph/W=$plotName userticks(hi)={yPos,yLabel}
-End	
+End
+
+STATIC Function LoadImageAndAnalyse(ImageDiskFolderName,ImageFileName)
+	String ImageDiskFolderName		// Name of Igor symbolic path or "" to get dialog
+	String ImageFileName		// Name of file to load or "" to get dialog
+	// now convert .dv to .tif
+	if(StringMatch(ImageFileName,"*.tif") == 0)
+		ImageFileName = RemoveEnding(ImageFileName,".dv") + ".tif"
+	endif
+	
+	NewPath/O/Q ImageDiskFolderPath, ImageDiskFolderName
+	ImageLoad/T=tiff/N=OriginalImage/O/P=ImageDiskFolderPath/S=0/LR3D/C=-1 ImageFileName
+	Wave/Z OriginalImage
+	if(!WaveExists(OriginalImage))
+		DoAlert/T="Problem" 0, "Image did not load"
+		return -1
+	endif
+	Variable nCh = 4 // hard coded channel number
+	// Rearrange the image. Upon load, channels are arrayed consecutively
+	if(RejigImage(OriginalImage,nCh) != 1)
+		DoAlert/T="Problem" 0, "Image rearrangement did not execute."
+		return -1
+	else
+		Wave ImgMat
+	endif
+	KillWaves/Z OriginalImage
+	
+	// declare the waves from a previous load
+	WAVE/Z mat_1,mat_2,mat_3,mat_4,mat_5
+	if(!WaveExists(mat_3))
+		DoAlert/T="Problem" 0, "No mat_3 (background counter locations)"
+		return -1
+	else
+		WAVE bgW = MakeBgWave(imgMat,mat_3)
+	endif
+	// subtract background values from signed 16-bit ImgMat
+	ImgMat[][][][] -= bgW[0][r]
+	MeasureIntensities(mat_1,imgMat)
+	MeasureIntensities(mat_2,imgMat)
+	MeasureIntensities(mat_4,imgMat)
+	MeasureIntensities(mat_5,imgMat)
+	KillWaves/Z imgMat
+End
+
+STATIC Function RejigImage(ImageMat,nCh)
+	WAVE ImageMat
+	Variable nCh
+	Variable nFrames = DimSize(ImageMat,2)
+	if(mod(nFrames,nCh) > 0)
+		return -1
+	endif
+	// 16-bit signed not unsigned!
+	Make/O/N=(dimSize(imageMat,0),dimSize(imageMat,1),nCh,nFrames/nCh)/W ImgMat
+	ImgMat[][][][] = ImageMat[p][q][floor(r/nCh)][(r*nCh) + mod(r,nCh)]
+	return 1
+End
+
+// Note, offset of 1
+Function/WAVE MakeBgWave(ImageMat,bgMat)
+	Wave ImageMat,bgMat
+
+	Variable nPoints = DimSize(bgmat,0)
+	Variable nChannels = DimSize(ImageMat,3)
+	Make/O/N=(nPoints,nChannels)/FREE bgValueW
+	Variable xPos,yPos,zPos,xPosMin,xPosMax,yPosMin,yPosMax
+	
+	Variable i,j
+	
+	for(i = 0; i < nPoints; i += 1)
+		xPos = round(bgMat[i][0]) - 1
+		yPos = round(bgMat[i][1]) - 1
+		zPos = round(bgMat[i][2]) - 1
+		// first check if bg area bumps into edges on x
+		if(xPos - 2 >= 0)
+			xPosMin = xPos - 2
+			xPosMax = xPos + 2
+			if(xPos + 2 >= DimSize(ImageMat,0))
+				xPosMax = DimSize(ImageMat,0) - 1
+				xPosMin = xPosMax - 4
+			endif
+		else
+			xPosMin = 0
+			xPosMax = 4
+		endif
+		// now check if bg area bumps into edges on y
+		if(yPos - 2 >= 0)
+			yPosMin = yPos - 2
+			yPosMax = yPos + 2
+			if(yPos + 2 > DimSize(ImageMat,1))
+				yPosMax = DimSize(ImageMat,1) - 1
+				yPosMin = yPosMax - 4
+			endif
+		else
+			yPosMin = 0
+			yPosMax = 4
+		endif
+		// now measure the bg values, in one z-slice only
+		for(j = 0; j < nChannels; j += 1)
+			WaveStats/Q/M=1/RMD=[xPosMin,xPosMax][yPosMin,yPosMax][zPos][j] ImageMat
+			bgValueW[i][j] = V_Avg
+		endfor
+	endfor
+	// 1 row wave with average bg value for each channel in each column
+	MatrixOp/O bgW = averageCols(bgValueW)
+	return bgW
+End
+
+// offset of 1!!
+Function MeasureIntensities(objToMeasure,ImageMat,rr)
+	Wave/Z objToMeasure,ImageMat
+	Variable rr // radius
+	if(!WaveExists(objToMeasure)
+		return -1
+	endif
+	Variable nPoints = DimSize(objToMeasure,0)
+	if(nPoints == 0)
+		return -1
+	endif
+	Variable nChannels = dimsize(ImageMat,3)
+	String wName = ReplaceString("mat_",NameOfWave(objToMeasure),"int_")
+	Make/O/N=(nPoints,nChannels) $wName
+	Wave w0 = $wName
+	Variable xPos,yPos,zPos
+	Variable xPosMin,xPosMax,yPosMin,yPosMax,zPosMin,zPosMax
+	
+	Variable i,j
+	
+	for(i = 0; i < nPoints; i += 1)
+		xPos = round(objToMeasure[i][0]) - 1
+		yPos = round(objToMeasure[i][1]) - 1
+		zPos = round(objToMeasure[i][2]) - 1
+		// first check if bg area bumps into edges on x
+		if(xPos - rr >= 0)
+			xPosMin = xPos - rr
+			xPosMax = xPos + rr
+			if(xPos + rr >= DimSize(ImageMat,0))
+				xPosMax = DimSize(ImageMat,0) - 1
+				xPosMin = xPosMax - (rr * 2)
+			endif
+		else
+			xPosMin = 0
+			xPosMax = (rr * 2)
+		endif
+		// now check if bg area bumps into edges on y
+		if(yPos - rr >= 0)
+			yPosMin = yPos - rr
+			yPosMax = yPos + rr
+			if(yPos + rr > DimSize(ImageMat,1))
+				yPosMax = DimSize(ImageMat,1) - 1
+				yPosMin = yPosMax - (rr * 2)
+			endif
+		else
+			yPosMin = 0
+			yPosMax = (rr * 2)
+		endif
+		// now check if bg area bumps into edges on z
+		if(zPos - rr >= 0)
+			zPosMin = zPos - rr
+			zPosMax = zPos + rr
+			if(zPos + rr > DimSize(ImageMat,2))
+				zPosMax = DimSize(ImageMat,2) - 1
+				zPosMin = zPosMax - rr
+			endif
+		else
+			zPosMin = 0
+			zPosMax = (rr * 2)
+		endif
+		// now measure the bg values, in one z-slice only
+		for(j = 0; j < nChannels; j += 1)
+			WaveStats/Q/M=1/RMD=[xPosMin,xPosMax][yPosMin,yPosMax][zPosMin,zPosMax][j] ImageMat
+			w0[i][j] = V_Avg
+		endfor
+	endfor
+End
 
 ////////////////////////////////////////////////////////////////////////
 // Work on many files from a directory
@@ -519,6 +708,51 @@ Function WorkOnDirectory()
 		RotateAndSitUp()
 		DistanceCalculations()
 		MakeWavesForGraphAndPlot(i)
+		SetDataFolder root:data:
+	endfor
+	SetDataFolder root:
+End
+
+Function WorkOnDirectoryIA()
+	NewDataFolder/O/S root:data
+	String expDiskFolderName, expDataFolderName
+	String FileList, ThisFile
+	Variable nWaves, i
+	
+	NewPath/O/Q/M="Locate folder with XML files" ExpDiskFolder
+	if (V_flag!=0)
+		DoAlert 0, "Disk folder error"
+		Return -1
+	endif
+	PathInfo /S ExpDiskFolder
+	ExpDiskFolderName = S_path
+	FileList = IndexedFile(expDiskFolder,-1,".xml")
+	Variable nFiles = ItemsInList(FileList)
+	Make/O/N=(nFiles)/T root:fileNameWave
+	Wave/T fileNameWave = root:fileNameWave
+	// now locate the image directory
+	NewPath/O/Q/M="Locate folder with images" ImageDiskFolder
+	if (V_flag!=0)
+		DoAlert 0, "Disk folder error"
+		Return -1
+	endif
+	PathInfo /S ImageDiskFolder
+	String ImageDiskFolderName = S_path
+	String ImageFileName
+	
+	for(i = 0; i < nFiles; i += 1)
+		ThisFile = StringFromList(i,FileList)
+		fileNameWave[i] = ThisFile
+		expDataFolderName = "dataset_" + num2str(i)
+		NewDataFolder/O/S $expDataFolderName
+		ReadXML(ExpDiskFolderName,ThisFile)
+		DealWithDuplicates()
+		WAVE/Z/T fNameWave
+		ImageFileName = fNameWave[0]
+		LoadImageAndAnalyse(ImageDiskFolderName,ImageFileName)
+		ScaleAllWaves()
+		RotateAndSitUp()
+		DistanceCalculations()
 		SetDataFolder root:data:
 	endfor
 	SetDataFolder root:
