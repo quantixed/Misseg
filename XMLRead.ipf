@@ -610,7 +610,7 @@ End
 // offset of 1!!
 Function MeasureIntensities(objToMeasure,ImageMat,rr)
 	Wave/Z objToMeasure,ImageMat
-	Variable rr // radius
+	Variable rr // radius in pixels
 	if(!WaveExists(objToMeasure))
 		return -1
 	endif
@@ -619,9 +619,12 @@ Function MeasureIntensities(objToMeasure,ImageMat,rr)
 		return -1
 	endif
 	Variable nChannels = dimsize(ImageMat,3)
+	// the objects to measure are stored in mat_n, store intensities in int_n
 	String wName = ReplaceString("mat_",NameOfWave(objToMeasure),"int_")
 	Make/O/N=(nPoints,nChannels) $wName
 	Wave w0 = $wName
+	// for each row in the objects to measure we'll excise a hypercube of image data
+	// Image is arrange x y z c
 	Variable xPos,yPos,zPos
 	Variable xPosMin,xPosMax,yPosMin,yPosMax,zPosMin,zPosMax
 	
@@ -631,7 +634,7 @@ Function MeasureIntensities(objToMeasure,ImageMat,rr)
 		xPos = round(objToMeasure[i][0]) - 1
 		yPos = round(objToMeasure[i][1]) - 1
 		zPos = round(objToMeasure[i][2]) - 1
-		// first check if bg area bumps into edges on x
+		// first check if cube area bumps into edges on x
 		if(xPos - rr >= 0)
 			xPosMin = xPos - rr
 			xPosMax = xPos + rr
@@ -641,9 +644,9 @@ Function MeasureIntensities(objToMeasure,ImageMat,rr)
 			endif
 		else
 			xPosMin = 0
-			xPosMax = (rr * 2)
+			xPosMax = rr * 2
 		endif
-		// now check if bg area bumps into edges on y
+		// now check if cube area bumps into edges on y
 		if(yPos - rr >= 0)
 			yPosMin = yPos - rr
 			yPosMax = yPos + rr
@@ -653,26 +656,74 @@ Function MeasureIntensities(objToMeasure,ImageMat,rr)
 			endif
 		else
 			yPosMin = 0
-			yPosMax = (rr * 2)
+			yPosMax = rr * 2
 		endif
-		// now check if bg area bumps into edges on z
+		// now check if cube area bumps into edges on z
 		if(zPos - rr >= 0)
 			zPosMin = zPos - rr
 			zPosMax = zPos + rr
 			if(zPos + rr > DimSize(ImageMat,2))
 				zPosMax = DimSize(ImageMat,2) - 1
-				zPosMin = zPosMax - rr
+				zPosMin = zPosMax - (rr * 2)
 			endif
 		else
 			zPosMin = 0
-			zPosMax = (rr * 2)
+			zPosMax = rr * 2
+			// for large rr it's possible we run out of z-slices, warn about this.
+			if(zPosMax >= DimSize(ImageMat,2))
+				Print "zDim exceeded for", GetDataFolder(0)
+			endif
 		endif
-		// now measure the bg values, in one z-slice only
-		for(j = 0; j < nChannels; j += 1)
-			WaveStats/Q/M=1/RMD=[xPosMin,xPosMax][yPosMin,yPosMax][zPosMin,zPosMax][j] ImageMat
-			w0[i][j] = V_Avg
-		endfor
+		// excise the hypercube -> cubeImg
+		Duplicate/O/FREE/RMD=[xPosMin,xPosMax][yPosMin,yPosMax][zPosMin,zPosMax][] ImageMat, cubeImg
+		// mask according to spherical ROI and measure mean voxel density for each channel
+		Wave theReturnWave = SendToSphere(cubeImg)
+		// mean voxel density is stored in each column, store these in int_n for each row of Objects to Measure.
+		w0[i][] = theReturnWave[0][q]
+		KillWaves/Z theReturnWave
 	endfor
+End
+
+Function/WAVE SendToSphere(cubeImg)
+	Wave cubeImg
+	// deduce variable rr from the size of cubeImg
+	Variable rr = (DimSize(cubeImg,0) - 1) / 2
+	Wave/Z sphereMask = root:sphereMask
+	if(!WaveExists(sphereMask))
+		MakeSphereMask(rr)
+	endif
+	Wave/Z sphereMask = root:sphereMask
+	// multiply cubeImg by mask
+	cubeImg *= sphereMask
+	// how many voxels for the mean intensity?
+	Variable roiSizeInVoxels = sum(sphereMask)
+	Variable nChannels = DimSize(cubeImg,3)
+	Make/O/N=(1,nChannels) theROIAverageWave
+	
+	Variable i
+	
+	for(i = 0; i < nChannels; i += 1)
+		WaveStats/Q/M=1/RMD=[][][][i] cubeImg
+		theROIAverageWave[][i] = V_sum / roiSizeInVoxels
+	endfor
+	return theROIAverageWave
+End
+
+STATIC Function MakeSphereMask(rr)
+	Variable rr
+	Variable cubeSize = (rr * 2) + 1
+	Make/O/N=(cubeSize,cubeSize,cubeSize,4)/B root:sphereMask = 0
+	Wave sphereMask = root:sphereMask
+	WAVE/Z ScalingW
+	if(!WaveExists(ScalingW))
+		Wave ScalingW = SetupParamWaves()
+	endif
+	// centre of cube is rr,rr,rr
+//	sphereMask[][][][] = (sqrt((p-rr)^2 + (q-rr)^2 + (r-rr)^2) < rr) ? 1 : 0 // this is unscaled version
+	// scalingW has pixel dimensions in columns
+	Variable rs = rr * ScalingW[0][0]
+	sphereMask[][][][] = (sqrt( (ScalingW[0][0] * (p-rr))^2 + (ScalingW[0][1] * (q-rr))^2 + (ScalingW[0][2] * (r-rr))^2) < rs) ? 1 : 0
+	return 1
 End
 
 ////////////////////////////////////////////////////////////////////////
@@ -751,9 +802,9 @@ Function WorkOnDirectoryIA()
 		WAVE/Z/T fNameWave
 		ImageFileName = fNameWave[0]
 		LoadImageAndAnalyse(ImageDiskFolderName,ImageFileName)
-		ScaleAllWaves()
-		RotateAndSitUp()
-		DistanceCalculations()
+//		ScaleAllWaves()
+//		RotateAndSitUp()
+//		DistanceCalculations()
 		SetDataFolder root:data:
 	endfor
 	SetDataFolder root:
