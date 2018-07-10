@@ -6,15 +6,15 @@
 // Give the option to change the scaling of the image
 Menu "Macros"
 	"Misseg One File...", /Q, WorkflowForXMLAnalysis()
-	"Misseg whole directory...", /Q, WorkflowForXMLAnalysisDir()
-	"Image analysis on directory...", /Q, WorkflowForImageAnalysisDir()
+	"Misseg Directory...", /Q, WorkflowForXMLAnalysisDir()
+	"Image Analysis Directory...", /Q, WorkflowForImageAnalysisDir()
 End
 
 Function WorkflowForXMLAnalysis()
 	CleanSlate()
 	ReadXML("","")
 	DealWithDuplicates()
-	ScaleAllWaves()
+	ScaleAllWaves(1,4)
 	RotateAndSitUp()
 	DistanceCalculations()
 	MakeWavesForGraphAndPlot(0)
@@ -40,6 +40,9 @@ Function WorkflowForImageAnalysisDir()
 	if(okvar < 0)
 		return -1
 	endif
+	MakeTheLayouts("intens",5,3)
+	SummariseIntensityMeasurements(4)
+	MakeTheLayouts("mean",6,2)
 End
 
 // Needs XMLUtils XOP
@@ -178,13 +181,18 @@ STATIC Function DealWithDuplicates()
 End
 
 // Scale all waves but also delete any without points
-STATIC Function ScaleAllWaves()
+STATIC Function ScaleAllWaves(correctVar,nCh)
+	Variable correctVar // use 1 to actually do the scaling
+	Variable nCh
 	String mList = WaveList("mat_*",";","")
 	Variable nWaves = ItemsInList(mList)
 	String mName
-	Wave ScalingW = SetupParamWaves()
+	Wave/Z ScalingW = root:ScalingW
+	if(!WaveExists(ScalingW))
+		DoAlert/T="Problem" 0, "No scaling wave"
+		return -1
+	endif
 	
-	Variable nCh = 4
 	Variable i
 	
 	for(i = 0; i < nWaves; i += 1)
@@ -193,10 +201,12 @@ STATIC Function ScaleAllWaves()
 		if(dimsize(m0,0) == 1)
 			KillWaves/Z m0
 		else
-			// Z-channel is Z and T combined so
-			m0[][2] = floor((m0[p][q]-1) / nCh)
-			// scale wave
-			m0[][] *= ScalingW[0][q]
+			// Z-channel is Z and C combined so
+			m0[][2] = ceil((m0[p][q]) / nCh) - 1 // -1 to make 0-based
+			if(correctVar == 1)
+				// scale wave
+				m0[][] *= ScalingW[0][q]
+			endif
 			// get rid of NaNs
 			ZapNansFrom2DWave(m0)
 		endif
@@ -501,9 +511,10 @@ STATIC Function MakeWavesForGraphAndPlot(ii)
 	ModifyGraph/W=$plotName userticks(hi)={yPos,yLabel}
 End
 
-STATIC Function LoadImageAndAnalyse(ImageDiskFolderName,ImageFileName)
+STATIC Function LoadImageAndAnalyse(ImageDiskFolderName,ImageFileName,nCh,rr)
 	String ImageDiskFolderName		// Name of Igor symbolic path or "" to get dialog
 	String ImageFileName		// Name of file to load or "" to get dialog
+	Variable nCh,rr // number of channels and radius size in pixels from dialog
 	// now convert .dv to .tif
 	if(StringMatch(ImageFileName,"*.tif") == 0)
 		ImageFileName = RemoveEnding(ImageFileName,".dv") + ".tif"
@@ -516,7 +527,6 @@ STATIC Function LoadImageAndAnalyse(ImageDiskFolderName,ImageFileName)
 		DoAlert/T="Problem" 0, "Image did not load"
 		return -1
 	endif
-	Variable nCh = 4 // hard coded channel number
 	// Rearrange the image. Upon load, channels are arrayed consecutively
 	// will be x y z c
 	if(RejigImage(OriginalImage,nCh) != 1)
@@ -525,23 +535,22 @@ STATIC Function LoadImageAndAnalyse(ImageDiskFolderName,ImageFileName)
 	else
 		Wave ImgMat
 	endif
-//	KillWaves/Z OriginalImage
-	
 	// declare the waves from a previous load
 	WAVE/Z mat_1,mat_2,mat_3,mat_4,mat_5
 	if(!WaveExists(mat_3))
 		DoAlert/T="Problem" 0, "No mat_3 (background counter locations)"
 		return -1
 	else
-		WAVE bgW = MakeBgWave(imgMat,mat_3)
+		WAVE bgW = MakeBgWave(imgMat,mat_3,rr)
 	endif
 	// subtract background values from signed 16-bit ImgMat
 	ImgMat[][][][] -= bgW[0][s]
-	MeasureIntensities(mat_1,imgMat,4)
-	MeasureIntensities(mat_2,imgMat,4)
-	MeasureIntensities(mat_4,imgMat,4)
-	MeasureIntensities(mat_5,imgMat,4)
-//	KillWaves/Z imgMat
+	MeasureIntensities(mat_1,imgMat,rr)
+	MeasureIntensities(mat_2,imgMat,rr)
+	MeasureIntensities(mat_4,imgMat,rr)
+	MeasureIntensities(mat_5,imgMat,rr)
+	TidyUp()
+	return 1
 End
 
 STATIC Function RejigImage(ImageMat,nCh)
@@ -557,9 +566,9 @@ STATIC Function RejigImage(ImageMat,nCh)
 	return 1
 End
 
-// Note, offset of 1
-Function/WAVE MakeBgWave(ImageMat,bgMat)
+Function/WAVE MakeBgWave(ImageMat,bgMat,rr)
 	Wave ImageMat,bgMat
+	Variable rr
 
 	Variable nPoints = DimSize(bgmat,0)
 	Variable nChannels = DimSize(ImageMat,3)
@@ -569,37 +578,41 @@ Function/WAVE MakeBgWave(ImageMat,bgMat)
 	Variable i,j
 	
 	for(i = 0; i < nPoints; i += 1)
-		xPos = round(bgMat[i][0]) - 1
-		yPos = round(bgMat[i][1]) - 1
-		zPos = round(bgMat[i][2]) - 1
+		xPos = round(bgMat[i][0])
+		yPos = round(bgMat[i][1])
+		zPos = round(bgMat[i][2])
 		// first check if bg area bumps into edges on x
-		if(xPos - 2 >= 0)
-			xPosMin = xPos - 2
-			xPosMax = xPos + 2
-			if(xPos + 2 >= DimSize(ImageMat,0))
+		if(xPos - rr >= 0)
+			xPosMin = xPos - rr
+			xPosMax = xPos + rr
+			if(xPos + rr >= DimSize(ImageMat,0))
 				xPosMax = DimSize(ImageMat,0) - 1
-				xPosMin = xPosMax - 4
+				xPosMin = xPosMax - rr * 2
 			endif
 		else
 			xPosMin = 0
-			xPosMax = 4
+			xPosMax = rr * 2
 		endif
 		// now check if bg area bumps into edges on y
-		if(yPos - 2 >= 0)
-			yPosMin = yPos - 2
-			yPosMax = yPos + 2
+		if(yPos - rr >= 0)
+			yPosMin = yPos - rr
+			yPosMax = yPos + rr
 			if(yPos + 2 > DimSize(ImageMat,1))
 				yPosMax = DimSize(ImageMat,1) - 1
-				yPosMin = yPosMax - 4
+				yPosMin = yPosMax - rr* 2
 			endif
 		else
 			yPosMin = 0
-			yPosMax = 4
+			yPosMax = rr * 2
 		endif
 		// now measure the bg values, in one z-slice only
 		for(j = 0; j < nChannels; j += 1)
-			WaveStats/Q/M=1/RMD=[xPosMin,xPosMax][yPosMin,yPosMax][zPos][j] ImageMat
-			bgValueW[i][j] = V_Avg
+			if(rr == 0)
+				bgValueW[i][j] = ImageMat[xPos][yPos][zPos][j]
+			else
+				WaveStats/Q/M=1/RMD=[xPosMin,xPosMax][yPosMin,yPosMax][zPos][j] ImageMat
+				bgValueW[i][j] = V_Avg
+			endif
 		endfor
 	endfor
 	// 1 row wave with average bg value for each channel in each column
@@ -607,7 +620,6 @@ Function/WAVE MakeBgWave(ImageMat,bgMat)
 	return bgW
 End
 
-// offset of 1!!
 Function MeasureIntensities(objToMeasure,ImageMat,rr)
 	Wave/Z objToMeasure,ImageMat
 	Variable rr // radius in pixels
@@ -631,9 +643,10 @@ Function MeasureIntensities(objToMeasure,ImageMat,rr)
 	Variable i,j
 	
 	for(i = 0; i < nPoints; i += 1)
-		xPos = round(objToMeasure[i][0]) - 1
-		yPos = round(objToMeasure[i][1]) - 1
-		zPos = round(objToMeasure[i][2]) - 1
+		// integers stored in XML are 0-based for X and Y. Z has been converted
+		xPos = round(objToMeasure[i][0])
+		yPos = round(objToMeasure[i][1])
+		zPos = round(objToMeasure[i][2])
 		// first check if cube area bumps into edges on x
 		if(xPos - rr >= 0)
 			xPosMin = xPos - rr
@@ -674,13 +687,18 @@ Function MeasureIntensities(objToMeasure,ImageMat,rr)
 				Print "zDim exceeded for", GetDataFolder(0)
 			endif
 		endif
-		// excise the hypercube -> cubeImg
-		Duplicate/O/FREE/RMD=[xPosMin,xPosMax][yPosMin,yPosMax][zPosMin,zPosMax][] ImageMat, cubeImg
-		// mask according to spherical ROI and measure mean voxel density for each channel
-		Wave theReturnWave = SendToSphere(cubeImg)
-		// mean voxel density is stored in each column, store these in int_n for each row of Objects to Measure.
-		w0[i][] = theReturnWave[0][q]
-		KillWaves/Z theReturnWave
+		// save some computing time is rr = 0
+		if(rr == 0)
+			w0[i][] = ImageMat[xPos][yPos][zPos][q]
+		else
+			// excise the hypercube -> cubeImg
+			Duplicate/O/FREE/RMD=[xPosMin,xPosMax][yPosMin,yPosMax][zPosMin,zPosMax][] ImageMat, cubeImg
+			// mask according to spherical ROI and measure mean voxel density for each channel
+			Wave theReturnWave = SendToSphere(cubeImg)
+			// mean voxel density is stored in each column, store these in int_n for each row of Objects to Measure.
+			w0[i][] = theReturnWave[0][q]
+			KillWaves/Z theReturnWave
+		endif
 	endfor
 End
 
@@ -695,9 +713,9 @@ Function/WAVE SendToSphere(cubeImg)
 	Wave/Z sphereMask = root:sphereMask
 	// multiply cubeImg by mask
 	cubeImg *= sphereMask
-	// how many voxels for the mean intensity?
-	Variable roiSizeInVoxels = sum(sphereMask)
 	Variable nChannels = DimSize(cubeImg,3)
+	// how many voxels for the mean intensity?
+	Variable roiSizeInVoxels = sum(sphereMask) / nChannels
 	Make/O/N=(1,nChannels) theROIAverageWave
 	
 	Variable i
@@ -714,9 +732,14 @@ STATIC Function MakeSphereMask(rr)
 	Variable cubeSize = (rr * 2) + 1
 	Make/O/N=(cubeSize,cubeSize,cubeSize,4)/B root:sphereMask = 0
 	Wave sphereMask = root:sphereMask
-	WAVE/Z ScalingW
+	if(rr == 0)
+		sphereMask = 1
+		return 1
+	endif
+	Wave/Z ScalingW = root:ScalingW
 	if(!WaveExists(ScalingW))
-		Wave ScalingW = SetupParamWaves()
+		DoAlert/T="Problem" 0, "No scaling wave"
+		return -1
 	endif
 	// centre of cube is rr,rr,rr
 //	sphereMask[][][][] = (sqrt((p-rr)^2 + (q-rr)^2 + (r-rr)^2) < rr) ? 1 : 0 // this is unscaled version
@@ -724,6 +747,59 @@ STATIC Function MakeSphereMask(rr)
 	Variable rs = rr * ScalingW[0][0]
 	sphereMask[][][][] = (sqrt( (ScalingW[0][0] * (p-rr))^2 + (ScalingW[0][1] * (q-rr))^2 + (ScalingW[0][2] * (r-rr))^2) < rs) ? 1 : 0
 	return 1
+End
+
+Function TidyUp()
+	WAVE/Z M_xmlcontent,OriginalImage,ScalingW,W_ElementList,W_xmlcontentnodes,ImgMat
+	KillWaves/Z M_xmlcontent,OriginalImage,ScalingW,W_ElementList,W_xmlcontentnodes,ImgMat
+End
+
+STATIC Function MakeIntWavesForGraphAndPlot(ii)
+	Variable ii // iteration number
+	
+	// THE INTENSITY PLOT - distance from point to plane
+	String wList = "int_1;int_2;int_4;int_5;"
+	Variable nWaves = ItemsInList(wList)
+	String wName, newName
+	Variable nRows, nChannels
+	String plotName = "intens_" + num2str(ii)
+	KillWindow/Z $plotName
+	Display/N=$plotName/HIDE=1
+	
+	Variable i,j
+	
+	for (i = 0; i < nWaves; i += 1)
+		wName = StringFromList(i,wList)
+		Wave m0 = $wName
+		if(!WaveExists(m0))
+			continue
+		endif
+		nRows = DimSize(m0,0)
+		if(nRows == 0)
+			continue
+		endif
+		nChannels = DimSize(m0,1)
+		for(j = 0; j < nChannels; j += 1)
+			newName = ReplaceString("int_",wName,"p_") + "_" + num2str(j) // p for plot
+			Make/O/N=(nRows,2) $newName
+			Wave m1 = $newName
+			// x value distribute by loc group by channel
+			m1[][0] = (i) + (j * nChannels) + gnoise(0.1)
+			m1[][1] = m0[p][j]
+			AppendToGraph/W=$plotName m1[][1] vs m1[][0]
+		endfor
+	endfor
+	Make/O/N=16 xPos = p
+	Make/O/N=16/T xLabel
+	xLabel[0,;4]="Plate"
+	xLabel[1,;4]="Poles"
+	xLabel[2,;4]="Misaligned"
+	xLabel[3,;4]="Ensheathed"
+	ModifyGraph/W=$plotName userticks(bottom)={xPos,xLabel}
+	SetAxis/W=$plotName/A/N=1/E=1 left
+	Label/W=$plotName left "Fluorescence Intensity"
+	ModifyGraph/W=$plotName mode=3,marker=19,mrkThick=0,rgb=(0,0,0,32768)
+	SetAxis/W=$plotName bottom -0.5,15.5
 End
 
 ////////////////////////////////////////////////////////////////////////
@@ -756,7 +832,7 @@ Function WorkOnDirectory()
 		NewDataFolder/O/S $expDataFolderName
 		ReadXML(ExpDiskFolderName,ThisFile)
 		DealWithDuplicates()
-		ScaleAllWaves()
+		ScaleAllWaves(1,4)
 		RotateAndSitUp()
 		DistanceCalculations()
 		MakeWavesForGraphAndPlot(i)
@@ -766,6 +842,28 @@ Function WorkOnDirectory()
 End
 
 Function WorkOnDirectoryIA()
+	Variable nCh = 4
+	Variable xSize = 0.06449999660253525
+	Variable ySize = 0.06449999660253525
+	Variable zSize = 0.20000000298023224
+	Variable rr = 8
+	String hstr = "XML files from Cell Counter in FIJI are paired with TIFFs for analysis.\r"
+	hstr += "If in doubt, leave this settings as they are."
+		
+	Prompt nCh, "How many channels?"
+	Prompt xSize, "x pixel dimension (nm)"
+	Prompt ySize, "y pixel dimension (nm)"
+	Prompt zSize, "z pixel dimension (nm)"
+	Prompt rr, "Radius for analysis (px)"
+	DoPrompt/HELP=hstr "Specify", nCh,xSize,ySize,zSize,rr
+	
+	if (V_flag) 
+		return -1
+	endif
+	
+	Make/O/N=3/D ScalingW = {xSize,ySize,zSize}
+	MatrixTranspose ScalingW
+		
 	NewDataFolder/O/S root:data
 	String expDiskFolderName, expDataFolderName
 	String FileList, ThisFile
@@ -801,10 +899,10 @@ Function WorkOnDirectoryIA()
 		DealWithDuplicates()
 		WAVE/Z/T fNameWave
 		ImageFileName = fNameWave[0]
-		LoadImageAndAnalyse(ImageDiskFolderName,ImageFileName)
-//		ScaleAllWaves()
-//		RotateAndSitUp()
-//		DistanceCalculations()
+		ScaleAllWaves(0,nCh)
+		if(LoadImageAndAnalyse(ImageDiskFolderName,ImageFileName,nCh,rr) != -1)
+			MakeIntWavesForGraphAndPlot(i)
+		endif
 		SetDataFolder root:data:
 	endfor
 	SetDataFolder root:
@@ -850,6 +948,88 @@ STATIC Function CollectAllMeasurements()
 			conName = "all_" + targetName
 			Concatenate/O/NP=0 modtList, $conName
 		endif
+	endfor
+End
+
+Function SummariseIntensityMeasurements(nCh)
+	Variable nCh
+	SetDataFolder root:data:	// relies on earlier load
+	DFREF dfr = GetDataFolderDFR()
+	String folderName
+	Variable numDataFolders = CountObjectsDFR(dfr, 4)
+	String wList = "", sList = ""
+	
+	Variable i,j
+	// assemble a string of semi-colon separated targets in the data folder
+	for(i = 0; i < numDataFolders; i += 1)
+		folderName = GetIndexedObjNameDFR(dfr, 4, i)
+		wList += "root:data:" + folderName + ":thisWave;"
+	endfor
+	
+	// these are the waves we want to summarise
+	String targetWaveList = "Int_1;Int_2;Int_4;Int_5;"
+	Variable nTargets = ItemsInList(targetWaveList)
+	String targetName, tList, wName
+	
+	SetDataFolder root:
+	String fullName
+	
+	for(i = 0; i < nTargets; i += 1)
+		targetName = StringFromList(i,targetWaveList)
+		tList = ReplaceString("thisWave",wList,targetName)
+		wName = "root:summary_" + targetName
+		Make/O/N=(numDataFolders,nCh) $wName
+		Wave summaryW = $wName
+		sList += wName + ";"
+		for(j = 0; j < numDataFolders; j +=1)
+			fullName = StringFromList(j, tList)
+			Wave testW = $fullName
+			if(!WaveExists(testW))
+				summaryW[j][] = NaN
+			else
+				MatrixOp/O/FREE meanW = averageCols(testW)
+				summaryW[j][] = meanW[0][q]
+			endif
+		endfor
+	endfor
+	// this gives us summary waves for each of the objects, each column is a separate channel
+	Concatenate/O/KILL/NP=2 sList, summaryMatrix
+	// now we have cells in rows, channels in columns and objects in layers
+	ImageTransform/G=1 transposeVol summaryMatrix
+	WAVE/Z M_VolumeTranspose
+	SplitWave/SDIM=2/O/N=channel M_VolumeTranspose
+	KillWaves/Z M_VolumeTranspose
+	Graph2DWaves(nCh)
+End
+
+STATIC Function Graph2DWaves(nCh)
+	Variable nCh
+	SetDataFolder root:
+	String wName, plotName, newName
+	Variable nRows
+	Make/O/N=(nCh) xPos=p
+	Make/O/N=(nCh)/T xLabel={"Aligned","Poles","Misaligned","Ensheathed"}
+	
+	Variable i
+	
+	for(i = 0; i < nCh; i += 1)
+		wName = "channel" + num2str(i)
+		plotName = "mean_" + num2str(i)
+		newName = "p_mean_" + num2str(i)
+		Wave w0 = $wName
+		nRows = DimSize(w0,0)
+		Make/O/N=(nRows,nCh) xW
+		xW[][] = q + gnoise(0.1)
+		Redimension/N=(nRows * nCh) w0, xW
+		Concatenate/O/KILL {xW,w0}, $newName
+		Wave w1 = $newName
+		KillWindow/Z $plotName
+		Display/N=$plotName/HIDE=1 w1[][1] vs w1[][0]
+		ModifyGraph/W=$plotName userticks(bottom)={xPos,xLabel}
+		SetAxis/W=$plotName/A/N=1/E=1 left
+		Label/W=$plotName left "Average intensity"
+		ModifyGraph/W=$plotName mode=3,marker=19,mrkThick=0,rgb=(0,0,0,32768)
+		SetAxis/W=$plotName bottom -0.5,(nCh-0.5)
 	endfor
 End
 
@@ -954,14 +1134,6 @@ End
 // Utility functions
 ////////////////////////////////////////////////////////////////////////
 
-STATIC Function/WAVE SetupParamWaves()
-	Make/O/N=(5)/T ContourDescW = {"Kinetochores Plate","Spindle Poles","BackGround","Misaligned Non-ensheathed","Misaligned Ensheathed"}
-	Make/O/N=(5)/T ContourIDW = {"1","2","3","4","5"}
-	Make/O/N=3/D ScalingW = {0.06449999660253525,0.06449999660253525,0.20000000298023224}
-	MatrixTranspose ScalingW
-	return scalingW
-End
-
 STATIC Function CleanSlate()
 	SetDataFolder root:
 	String fullList = WinList("*", ";","WIN:65543")
@@ -1002,3 +1174,10 @@ STATIC Function MakeCube(m0)
 	Concatenate/O/NP=1/FREE {c0,c1,c2},octMat
 	m0[][] = m0[p][q] * octMat[p][q]
 End
+
+// Note that this was written for XML where the following were picked out (by index)
+//1 Kinetochores Plate
+//2 Spindle Poles
+//3 BackGround
+//4 Misaligned Non-ensheathed"
+//5 Misaligned Ensheathed
