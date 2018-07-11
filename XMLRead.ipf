@@ -36,10 +36,19 @@ End
 
 Function WorkflowForImageAnalysisDir()
 	CleanSlate()
+<<<<<<< HEAD
+	StartingPanel()
+End
+
+STATIC Function IAWrapperFunc()
+	KillWindow/Z SetUp
+	WorkOnDirectoryIA()
+=======
 	Variable okvar = WorkOnDirectoryIA()
 	if(okvar < 0)
 		return -1
 	endif
+>>>>>>> 957c63e52765e69844b5183210770abe5be8f464
 	MakeTheLayouts("intens",5,3)
 	SummariseIntensityMeasurements(4)
 	MakeTheLayouts("mean",6,2)
@@ -765,6 +774,11 @@ STATIC Function MakeIntWavesForGraphAndPlot(ii)
 	String plotName = "intens_" + num2str(ii)
 	KillWindow/Z $plotName
 	Display/N=$plotName/HIDE=1
+<<<<<<< HEAD
+	Wave/T objWave = root:objWave
+	Wave/T ChWave = root:ChWave
+=======
+>>>>>>> 957c63e52765e69844b5183210770abe5be8f464
 	
 	Variable i,j
 	
@@ -791,15 +805,31 @@ STATIC Function MakeIntWavesForGraphAndPlot(ii)
 	endfor
 	Make/O/N=16 xPos = p
 	Make/O/N=16/T xLabel
+<<<<<<< HEAD
+	xLabel[0,;4]=ObjWave[0]
+	xLabel[1,;4]=ObjWave[1]
+	xLabel[2,;4]=ObjWave[3]
+	xLabel[3,;4]=ObjWave[4]
+=======
 	xLabel[0,;4]="Plate"
 	xLabel[1,;4]="Poles"
 	xLabel[2,;4]="Misaligned"
 	xLabel[3,;4]="Ensheathed"
+>>>>>>> 957c63e52765e69844b5183210770abe5be8f464
 	ModifyGraph/W=$plotName userticks(bottom)={xPos,xLabel}
 	SetAxis/W=$plotName/A/N=1/E=1 left
 	Label/W=$plotName left "Fluorescence Intensity"
 	ModifyGraph/W=$plotName mode=3,marker=19,mrkThick=0,rgb=(0,0,0,32768)
 	SetAxis/W=$plotName bottom -0.5,15.5
+<<<<<<< HEAD
+	ModifyGraph/W=$plotName tkLblRot(bottom)=90
+	// add channel labels
+	for(i = 0; i < nChannels; i += 1)
+		SetDrawEnv/W=$plotName xcoord= bottom,textxjust= 1,textyjust= 2, fsize= 10
+		DrawText/W=$plotName ((nChannels - 1) / 2 + (nChannels * i)),0,ChWave[i]
+	endfor
+=======
+>>>>>>> 957c63e52765e69844b5183210770abe5be8f464
 End
 
 ////////////////////////////////////////////////////////////////////////
@@ -842,6 +872,14 @@ Function WorkOnDirectory()
 End
 
 Function WorkOnDirectoryIA()
+<<<<<<< HEAD
+
+	Wave gVarWave = root:gVarWave
+	Wave/T pathWave = root:pathWave
+	Variable nCh = gVarWave[0]
+	Variable rr = gVarWave[1]
+	Make/O/N=3 ScalingW = {gVarWave[2],gVarWave[3],gVarWave[4]}
+=======
 	Variable nCh = 4
 	Variable xSize = 0.06449999660253525
 	Variable ySize = 0.06449999660253525
@@ -862,30 +900,25 @@ Function WorkOnDirectoryIA()
 	endif
 	
 	Make/O/N=3/D ScalingW = {xSize,ySize,zSize}
+>>>>>>> 957c63e52765e69844b5183210770abe5be8f464
 	MatrixTranspose ScalingW
 		
 	NewDataFolder/O/S root:data
 	String expDiskFolderName, expDataFolderName
 	String FileList, ThisFile
 	Variable nWaves, i
-	
-	NewPath/O/Q/M="Locate folder with XML files" ExpDiskFolder
-	if (V_flag!=0)
-		DoAlert 0, "Disk folder error"
-		Return -1
-	endif
+	// XML Dir now pre-selected
+	String pathToFolder = pathWave[0]
+	NewPath/O/Q ExpDiskFolder, pathToFolder
 	PathInfo /S ExpDiskFolder
 	ExpDiskFolderName = S_path
 	FileList = IndexedFile(expDiskFolder,-1,".xml")
 	Variable nFiles = ItemsInList(FileList)
 	Make/O/N=(nFiles)/T root:fileNameWave
 	Wave/T fileNameWave = root:fileNameWave
-	// now locate the image directory
-	NewPath/O/Q/M="Locate folder with images" ImageDiskFolder
-	if (V_flag!=0)
-		DoAlert 0, "Disk folder error"
-		Return -1
-	endif
+	// TIFF Dir pre-selected
+	pathToFolder = pathWave[1]
+	NewPath/O/Q ImageDiskFolder, pathToFolder
 	PathInfo /S ImageDiskFolder
 	String ImageDiskFolderName = S_path
 	String ImageFileName
@@ -1008,7 +1041,13 @@ STATIC Function Graph2DWaves(nCh)
 	String wName, plotName, newName
 	Variable nRows
 	Make/O/N=(nCh) xPos=p
+<<<<<<< HEAD
+	Wave/T objWave = root:objWave
+	Make/O/N=(nCh)/T xLabel={objWave[0],objWave[1],objWave[3],objWave[4]}
+	Wave/T ChWave = root:ChWave
+=======
 	Make/O/N=(nCh)/T xLabel={"Aligned","Poles","Misaligned","Ensheathed"}
+>>>>>>> 957c63e52765e69844b5183210770abe5be8f464
 	
 	Variable i
 	
@@ -1030,6 +1069,10 @@ STATIC Function Graph2DWaves(nCh)
 		Label/W=$plotName left "Average intensity"
 		ModifyGraph/W=$plotName mode=3,marker=19,mrkThick=0,rgb=(0,0,0,32768)
 		SetAxis/W=$plotName bottom -0.5,(nCh-0.5)
+<<<<<<< HEAD
+		TextBox/W=$plotName/C/N=text0/F=0/X=0.00/Y=0.00 ChWave[i]
+=======
+>>>>>>> 957c63e52765e69844b5183210770abe5be8f464
 	endfor
 End
 
@@ -1180,4 +1223,136 @@ End
 //2 Spindle Poles
 //3 BackGround
 //4 Misaligned Non-ensheathed"
+<<<<<<< HEAD
 //5 Misaligned Ensheathed
+
+////////////////////////////////////////////////////////////////////////
+// Panel functions
+////////////////////////////////////////////////////////////////////////
+
+Function StartingPanel()
+	// make global text wave to store paths, object and channel info
+	Make/T/O/N=2 PathWave
+	Make/T/O/N=5 ObjWave={"Aligned","Poles","Background","Misaligned","Ensheathed"}
+	Make/T/O/N=4 ChWave={"DNA","Tubulin","ER","CENP-C"}
+	// make global numeric wave for other variables
+	Make/O/N=8 gVarWave={4,8,0.06449999660253525,0.06449999660253525,0.20000000298023224}
+	// note that this panel will not deal with less/more than 4 channels and 5 objects
+	DoWindow/K SetUp
+	NewPanel/N=SetUp/K=1/W=(81,73,774,298)
+	SetDrawLayer UserBack
+	SetDrawEnv linefgc= (65535,65535,65535),fillfgc= (49151,53155,65535)
+	DrawRect 9,116,176,218
+	Button SelectDir1,pos={12.00,10.00},size={140.00,20.00},proc=ButtonProc,title="Select XML Dir"
+	Button SelectDir2,pos={12.00,41.00},size={140.00,20.00},proc=ButtonProc,title="Select TIFF Dir"
+	SetVariable Dir1,pos={188.00,13.00},size={480.00,14.00},value= PathWave[0],title="XML Directory"
+	SetVariable Dir2,pos={188.00,44.00},size={480.00,14.00},value= PathWave[1],title="TIFF Directory"
+	SetVariable Obj0,pos={214.00,80.00},size={194.00,14.00},value= ObjWave[0],title="Object 1"
+	SetVariable Obj1,pos={214.00,110.00},size={194.00,14.00},value= ObjWave[1],title="Object 2"
+	SetVariable Obj2,pos={214.00,140.00},size={194.00,14.00},value= ObjWave[2],title="Object 3"
+	SetVariable Obj3,pos={214.00,170.00},size={194.00,14.00},value= ObjWave[3],title="Object 4"
+	SetVariable Obj4,pos={214.00,200.00},size={194.00,14.00},value= ObjWave[4],title="Object 5"
+	
+	SetVariable ChSetVar,pos={12.00,70.00},size={166.00,14.00},title="How many channels?"
+	SetVariable ChSetVar,format="%g",value= gVarWave[0]
+	SetVariable RrSetVar,pos={12.00,90.00},size={166.00,14.00},title="Analysis radius (px)"
+	SetVariable RrSetVar,format="%g",value= gVarWave[1]
+	SetVariable xVar,pos={27.00,135.00},size={126.00,14.00},title="x size (nm)"
+	SetVariable xVar,format="%g",value= gVarWave[2]
+	SetVariable yVar,pos={27.00,160.00},size={126.00,14.00},title="y size (nm)"
+	SetVariable yVar,format="%g",value= gVarWave[3]
+	SetVariable zVar,pos={27.00,185.00},size={126.00,14.00},title="z size (nm)"
+	SetVariable zVar,format="%g",value= gVarWave[4]
+
+	SetVariable Ch0,pos={468.00,80.00},size={194.00,14.00},value= ChWave[0],title="Channel 1"
+	SetVariable Ch1,pos={468.00,110.00},size={194.00,14.00},value= ChWave[1],title="Channel 2"
+	SetVariable Ch2,pos={468.00,140.00},size={194.00,14.00},value= ChWave[2],title="Channel 3"
+	SetVariable Ch3,pos={468.00,170.00},size={194.00,14.00},value= ChWave[3],title="Channel 4"
+	Button DoIt,pos={564.00,194.00},size={100.00,20.00},proc=ButtonProc,title="Do It"
+End
+ 
+// define buttons
+Function ButtonProc(ctrlName) : ButtonControl
+	String ctrlName
+ 
+		Wave/T PathWave, ObjWave, ChWave
+		Wave gVarWave
+		Variable refnum,okVar
+ 
+		strswitch(ctrlName)
+ 
+			case "SelectDir1"	:
+				// set XML directory
+				NewPath/Q/O/M="Locate folder with XML files" XMLPath
+				PathInfo XMLPath
+				PathWave[0] = S_Path
+				break
+ 
+			case "SelectDir2"	:
+				// set TIFF directory
+				NewPath/Q/O/M="Locate folder with images" TiffPath
+				PathInfo TiffPath
+				PathWave[1] = S_Path
+				break
+ 
+			case "DoIt" :
+				// check CondWave
+				okvar = WaveChecker(PathWave)
+				if (okvar == -1)
+					Print "Error: Not all directories are selected."
+					break
+				endif
+				okvar = NameChecker(objWave)
+				if (okvar == -1)
+					Print "Error: Two objects have the same name."
+					break
+				endif
+				okvar = NameChecker(ChWave)
+				if (okvar == -1)
+					Print "Error: Two channels have the same name."
+					break
+				else
+					IAWrapperFunc()
+				endif
+		EndSwitch
+End
+
+STATIC function WaveChecker(TextWaveToCheck)
+	Wave/T TextWaveToCheck
+	Variable nRows = numpnts(TextWaveToCheck)
+	Variable len
+	
+	Variable i
+	
+	for(i = 0; i < nRows; i += 1)
+		len = strlen(TextWaveToCheck[i])
+		if(len == 0)
+			return -1
+		elseif(numtype(len) == 2)
+			return -1
+		endif
+	endfor
+	return 1
+End
+
+STATIC function NameChecker(TextWaveToCheck)
+	Wave/T TextWaveToCheck
+	Variable nRows = numpnts(TextWaveToCheck)
+	Variable len
+	
+	Variable i,j
+	
+	for(i = 0; i < nRows; i += 1)
+		for(j = 0; j < nRows; j += 1)
+			if(j > i)
+				if(cmpstr(TextWaveToCheck[i], TextWaveToCheck[j], 0) == 0)
+					return -1
+				endif
+			endif
+		endfor
+	endfor
+	return 1
+End
+=======
+//5 Misaligned Ensheathed
+>>>>>>> 957c63e52765e69844b5183210770abe5be8f464
