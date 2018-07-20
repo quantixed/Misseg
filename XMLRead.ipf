@@ -36,19 +36,12 @@ End
 
 Function WorkflowForImageAnalysisDir()
 	CleanSlate()
-<<<<<<< HEAD
 	StartingPanel()
 End
 
 STATIC Function IAWrapperFunc()
 	KillWindow/Z SetUp
 	WorkOnDirectoryIA()
-=======
-	Variable okvar = WorkOnDirectoryIA()
-	if(okvar < 0)
-		return -1
-	endif
->>>>>>> 957c63e52765e69844b5183210770abe5be8f464
 	MakeTheLayouts("intens",5,3)
 	SummariseIntensityMeasurements(4)
 	MakeTheLayouts("mean",6,2)
@@ -208,7 +201,9 @@ STATIC Function ScaleAllWaves(correctVar,nCh)
 		mName = StringFromList(i,mList)
 		Wave m0 = $mName
 		if(dimsize(m0,0) == 1)
-			KillWaves/Z m0
+			if(m0[0][2] == -1)
+				KillWaves/Z m0
+			endif
 		else
 			// Z-channel is Z and C combined so
 			m0[][2] = ceil((m0[p][q]) / nCh) - 1 // -1 to make 0-based
@@ -648,6 +643,8 @@ Function MeasureIntensities(objToMeasure,ImageMat,rr)
 	// Image is arrange x y z c
 	Variable xPos,yPos,zPos
 	Variable xPosMin,xPosMax,yPosMin,yPosMax,zPosMin,zPosMax
+	Wave/z ScalingW = root:ScalingW
+	Variable zr = ceil(rr * (ScalingW[0][0] / ScalingW[0][2])) // rr in terms of z scaling
 	
 	Variable i,j
 	
@@ -681,16 +678,16 @@ Function MeasureIntensities(objToMeasure,ImageMat,rr)
 			yPosMax = rr * 2
 		endif
 		// now check if cube area bumps into edges on z
-		if(zPos - rr >= 0)
-			zPosMin = zPos - rr
-			zPosMax = zPos + rr
-			if(zPos + rr > DimSize(ImageMat,2))
+		if(zPos - zr >= 0)
+			zPosMin = zPos - zr
+			zPosMax = zPos + zr
+			if(zPos + zr > DimSize(ImageMat,2))
 				zPosMax = DimSize(ImageMat,2) - 1
-				zPosMin = zPosMax - (rr * 2)
+				zPosMin = zPosMax - (zr * 2)
 			endif
 		else
 			zPosMin = 0
-			zPosMax = rr * 2
+			zPosMax = zr * 2
 			// for large rr it's possible we run out of z-slices, warn about this.
 			if(zPosMax >= DimSize(ImageMat,2))
 				Print "zDim exceeded for", GetDataFolder(0)
@@ -715,9 +712,13 @@ Function/WAVE SendToSphere(cubeImg)
 	Wave cubeImg
 	// deduce variable rr from the size of cubeImg
 	Variable rr = (DimSize(cubeImg,0) - 1) / 2
+	// Because of scaling we will use this instead to make sphereMask
+	Variable xmid = (DimSize(cubeImg,0) - 1) / 2
+	Variable ymid = (DimSize(cubeImg,1) - 1) / 2
+	Variable zmid = (DimSize(cubeImg,2) - 1) / 2
 	Wave/Z sphereMask = root:sphereMask
 	if(!WaveExists(sphereMask))
-		MakeSphereMask(rr)
+		MakeSphereMask(xMid,yMid,zMid)
 	endif
 	Wave/Z sphereMask = root:sphereMask
 	// multiply cubeImg by mask
@@ -736,10 +737,12 @@ Function/WAVE SendToSphere(cubeImg)
 	return theROIAverageWave
 End
 
-STATIC Function MakeSphereMask(rr)
-	Variable rr
-	Variable cubeSize = (rr * 2) + 1
-	Make/O/N=(cubeSize,cubeSize,cubeSize,4)/B root:sphereMask = 0
+STATIC Function MakeSphereMask(xMid,yMid,zMid)
+	Variable xMid,yMid,zMid
+	Variable rr = xMid
+	Wave gVarWave = root:gVarWave
+	Variable nCh = gVarWave[0]
+	Make/O/N=(xMid * 2 + 1,yMid * 2 + 1,zMid * 2 + 1,nCh)/B root:sphereMask = 0
 	Wave sphereMask = root:sphereMask
 	if(rr == 0)
 		sphereMask = 1
@@ -754,7 +757,8 @@ STATIC Function MakeSphereMask(rr)
 //	sphereMask[][][][] = (sqrt((p-rr)^2 + (q-rr)^2 + (r-rr)^2) < rr) ? 1 : 0 // this is unscaled version
 	// scalingW has pixel dimensions in columns
 	Variable rs = rr * ScalingW[0][0]
-	sphereMask[][][][] = (sqrt( (ScalingW[0][0] * (p-rr))^2 + (ScalingW[0][1] * (q-rr))^2 + (ScalingW[0][2] * (r-rr))^2) < rs) ? 1 : 0
+//	sphereMask[][][][] = (sqrt( (ScalingW[0][0] * (p-rr))^2 + (ScalingW[0][1] * (q-rr))^2 + (ScalingW[0][2] * (r-rr))^2) < rs) ? 1 : 0
+	sphereMask[][][][] = (sqrt( (ScalingW[0][0] * (p-xmid))^2 + (ScalingW[0][1] * (q-ymid))^2 + (ScalingW[0][2] * (r-zmid))^2) <= rs) ? 1 : 0
 	return 1
 End
 
@@ -774,11 +778,8 @@ STATIC Function MakeIntWavesForGraphAndPlot(ii)
 	String plotName = "intens_" + num2str(ii)
 	KillWindow/Z $plotName
 	Display/N=$plotName/HIDE=1
-<<<<<<< HEAD
 	Wave/T objWave = root:objWave
 	Wave/T ChWave = root:ChWave
-=======
->>>>>>> 957c63e52765e69844b5183210770abe5be8f464
 	
 	Variable i,j
 	
@@ -805,31 +806,21 @@ STATIC Function MakeIntWavesForGraphAndPlot(ii)
 	endfor
 	Make/O/N=16 xPos = p
 	Make/O/N=16/T xLabel
-<<<<<<< HEAD
 	xLabel[0,;4]=ObjWave[0]
 	xLabel[1,;4]=ObjWave[1]
 	xLabel[2,;4]=ObjWave[3]
 	xLabel[3,;4]=ObjWave[4]
-=======
-	xLabel[0,;4]="Plate"
-	xLabel[1,;4]="Poles"
-	xLabel[2,;4]="Misaligned"
-	xLabel[3,;4]="Ensheathed"
->>>>>>> 957c63e52765e69844b5183210770abe5be8f464
 	ModifyGraph/W=$plotName userticks(bottom)={xPos,xLabel}
 	SetAxis/W=$plotName/A/N=1/E=1 left
 	Label/W=$plotName left "Fluorescence Intensity"
 	ModifyGraph/W=$plotName mode=3,marker=19,mrkThick=0,rgb=(0,0,0,32768)
 	SetAxis/W=$plotName bottom -0.5,15.5
-<<<<<<< HEAD
 	ModifyGraph/W=$plotName tkLblRot(bottom)=90
 	// add channel labels
 	for(i = 0; i < nChannels; i += 1)
 		SetDrawEnv/W=$plotName xcoord= bottom,textxjust= 1,textyjust= 2, fsize= 10
 		DrawText/W=$plotName ((nChannels - 1) / 2 + (nChannels * i)),0,ChWave[i]
 	endfor
-=======
->>>>>>> 957c63e52765e69844b5183210770abe5be8f464
 End
 
 ////////////////////////////////////////////////////////////////////////
@@ -872,35 +863,12 @@ Function WorkOnDirectory()
 End
 
 Function WorkOnDirectoryIA()
-<<<<<<< HEAD
 
 	Wave gVarWave = root:gVarWave
 	Wave/T pathWave = root:pathWave
 	Variable nCh = gVarWave[0]
 	Variable rr = gVarWave[1]
 	Make/O/N=3 ScalingW = {gVarWave[2],gVarWave[3],gVarWave[4]}
-=======
-	Variable nCh = 4
-	Variable xSize = 0.06449999660253525
-	Variable ySize = 0.06449999660253525
-	Variable zSize = 0.20000000298023224
-	Variable rr = 8
-	String hstr = "XML files from Cell Counter in FIJI are paired with TIFFs for analysis.\r"
-	hstr += "If in doubt, leave this settings as they are."
-		
-	Prompt nCh, "How many channels?"
-	Prompt xSize, "x pixel dimension (nm)"
-	Prompt ySize, "y pixel dimension (nm)"
-	Prompt zSize, "z pixel dimension (nm)"
-	Prompt rr, "Radius for analysis (px)"
-	DoPrompt/HELP=hstr "Specify", nCh,xSize,ySize,zSize,rr
-	
-	if (V_flag) 
-		return -1
-	endif
-	
-	Make/O/N=3/D ScalingW = {xSize,ySize,zSize}
->>>>>>> 957c63e52765e69844b5183210770abe5be8f464
 	MatrixTranspose ScalingW
 		
 	NewDataFolder/O/S root:data
@@ -1041,13 +1009,9 @@ STATIC Function Graph2DWaves(nCh)
 	String wName, plotName, newName
 	Variable nRows
 	Make/O/N=(nCh) xPos=p
-<<<<<<< HEAD
 	Wave/T objWave = root:objWave
 	Make/O/N=(nCh)/T xLabel={objWave[0],objWave[1],objWave[3],objWave[4]}
 	Wave/T ChWave = root:ChWave
-=======
-	Make/O/N=(nCh)/T xLabel={"Aligned","Poles","Misaligned","Ensheathed"}
->>>>>>> 957c63e52765e69844b5183210770abe5be8f464
 	
 	Variable i
 	
@@ -1069,10 +1033,7 @@ STATIC Function Graph2DWaves(nCh)
 		Label/W=$plotName left "Average intensity"
 		ModifyGraph/W=$plotName mode=3,marker=19,mrkThick=0,rgb=(0,0,0,32768)
 		SetAxis/W=$plotName bottom -0.5,(nCh-0.5)
-<<<<<<< HEAD
 		TextBox/W=$plotName/C/N=text0/F=0/X=0.00/Y=0.00 ChWave[i]
-=======
->>>>>>> 957c63e52765e69844b5183210770abe5be8f464
 	endfor
 End
 
@@ -1223,7 +1184,6 @@ End
 //2 Spindle Poles
 //3 BackGround
 //4 Misaligned Non-ensheathed"
-<<<<<<< HEAD
 //5 Misaligned Ensheathed
 
 ////////////////////////////////////////////////////////////////////////
@@ -1353,6 +1313,32 @@ STATIC function NameChecker(TextWaveToCheck)
 	endfor
 	return 1
 End
-=======
-//5 Misaligned Ensheathed
->>>>>>> 957c63e52765e69844b5183210770abe5be8f464
+
+Function VizSphereMask()
+	WAVE/Z sphereMask = root:sphereMask
+	Duplicate/O/RMD=[][][][0]/FREE sphereMask, theTempMat
+	Redimension/N=(-1,-1,-1) theTempMat
+	// rows are x values, columns are y values and layers are z-values
+	Variable xSize = DimSize(theTempMat,0)
+	Variable ySize = DimSize(theTempMat,1)
+	Variable zSize = DimSize(theTempMat,2)
+	Variable nRows = xSize * ySize * zSize
+	Make/O/N=(nRows,3) cubicLoc
+	cubicLoc[][0] = mod(p,xSize)
+	cubicLoc[][1] = mod(floor(p/ySize),xSize)
+	cubicLoc[][2] = floor(p/(xSize * ySize))
+	Make/O/N=(nRows) cubicVal
+	cubicVal[] = theTempMat[cubicLoc[p][0]][cubicLoc[p][1]][cubicLoc[p][2]]
+	MatrixOp/O colorWaveGiz = colRepeat(cubicVal,4)
+	// set zeros to blank
+	colorWaveGiz[][3] = (cubicVal[p] == 0) ? 0 : 1
+	colorWaveGiz[][1] = 0
+	MatrixOp/O sizeWaveGiz = colRepeat(cubicVal,3)
+	sizeWaveGiz[][] = (cubicVal[p] == 0) ? 0.1 : 0.75
+	NewGizmo
+	AppendToGizmo DefaultScatter= root:cubicLoc
+	ModifyGizmo ModifyObject=scatter0,objectType=scatter,property={ sizeType,1}
+	ModifyGizmo ModifyObject=scatter0,objectType=scatter,property={ sizeWave,root:sizeWaveGiz}
+	ModifyGizmo ModifyObject=scatter0,objectType=scatter,property={ scatterColorType,1}
+	ModifyGizmo ModifyObject=scatter0,objectType=scatter,property={ colorWave,root:colorWaveGiz}
+End
