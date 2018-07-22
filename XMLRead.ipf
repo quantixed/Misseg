@@ -594,18 +594,14 @@ STATIC Function LoadImageAndClip(ImageDiskFolderName,ImageFileName,nCh,clipSize,
 		DoAlert/T="Problem" 0, "Image rearrangement did not execute."
 		return -1
 	else
-		Wave ImgMat16
+		Wave imgMat16
 	endif
+	// We need to reference gVarWave to get rCh,gCh,bCh
+	Wave gVarWave = root:gVarWave
+	// Now find the min and max values (trimmed)
+	MakeMinMaxWave(imgMat16,gVarWave[5],gVarWave[6],gVarWave[7])
 	// declare the waves from a previous load
-	WAVE/Z mat_1,mat_2,mat_3,mat_4,mat_5
-	if(!WaveExists(mat_3))
-		DoAlert/T="Problem" 0, "No mat_3 (background counter locations)"
-		return -1
-	else
-		WAVE bgW = MakeBgWave(imgMat16,mat_3,4)
-	endif
-	// subtract background values from signed 16-bit ImgMat
-//	ImgMat[][][][] -= bgW[0][s]
+	WAVE/Z mat_1,mat_2,mat_4,mat_5
 	TakeClips(mat_1,imgMat16,clipSize,ii)
 	TakeClips(mat_2,imgMat16,clipSize,ii)
 	TakeClips(mat_4,imgMat16,clipSize,ii)
@@ -886,6 +882,32 @@ STATIC Function MakeIntWavesForGraphAndPlot(ii)
 	endfor
 End
 
+STATIC Function MakeMinMaxWave(ImageMat,rCh,gCh,bCh)
+	Wave ImageMat
+	Variable rCh,gCh,bCh // index of chunk for each channel. -1 means blank
+	String rgbList = num2str(rCh) + ";" + num2str(gCh) + ";" + num2str(bCh) + ";"
+	Variable nZ = DimSize(ImageMat,2)
+	Make/O/N=(nZ,2,3) minMaxW // rows for z, columns min and max, layers r g b
+	Variable totalOrigPix = DimSize(ImageMat,0) * DimSize(ImageMat,1)
+	Variable chSelect
+	
+	Variable i,j
+	
+	for(i = 0; i < nZ; i += 1)
+		for(j = 0; j < 3; j += 1)
+			chSelect = str2num(StringFromList(j,rgbList))
+			if(chSelect == -1)
+				continue
+			endif
+			Duplicate/O/FREE/RMD=[][][i][chSelect] ImageMat, tempW
+			Redimension/N=(totalOrigPix) tempW
+			Sort tempW,tempW
+			minMaxW[i][0][j] = tempW[0]
+			minMaxW[i][1][j] = tempW[floor(totalOrigPix-(totalOrigPix * 0.003))] // ImageJ does something like 0.35%
+		endfor
+	endfor
+End
+
 Function TakeClips(objToMeasure,ImageMat,clipSize,ii)
 	Wave/Z objToMeasure,ImageMat
 	Variable clipSize // clipSize in pixels
@@ -897,6 +919,8 @@ Function TakeClips(objToMeasure,ImageMat,clipSize,ii)
 	if(nPoints == 0)
 		return -1
 	endif
+	// We need to reference gVarWave to get rCh,gCh,bCh
+	Wave gVarWave = root:gVarWave
 	Variable nChannels = dimsize(ImageMat,3)
 	// for each row in the objects to measure we'll excise a layer of image data
 	// Image is arrange x y z c
@@ -941,7 +965,7 @@ Function TakeClips(objToMeasure,ImageMat,clipSize,ii)
 		Duplicate/O/RMD=[xPosMin,xPosMax][yPosMin,yPosMax][zPos][] ImageMat, $clipName
 		Wave clip0 = $clipName
 		// Make the appropriate RGB images here and make a hidden window - we'll put them in a layout later
-		Wave clip1 = MakeTheImage(clip0, ImageMat, zPos,2,1,3)
+		Wave clip1 = MakeTheImage(clip0, zPos,gVarWave[5],gVarWave[6],gVarWave[7])
 		KillWaves/Z clip0
 		// plotName is p_rgb_0_1_2 for dataset 0, obj 1, row 2
 		plotName = ReplaceString("clp_",clipName,"p_rgb_"+num2str(ii)+"_")
@@ -951,55 +975,38 @@ Function TakeClips(objToMeasure,ImageMat,clipSize,ii)
 	endfor
 End
 
-STATIC Function/WAVE MakeTheImage(clip0,ImageMat,zPos,rCh,gCh,bCh)
-	Wave clip0, ImageMat
+STATIC Function/WAVE MakeTheImage(clip0,zPos,rCh,gCh,bCh)
+	Wave clip0
 	Variable zPos
 	Variable rCh,gCh,bCh // index of chunk for each channel. -1 means blank
-	String rgbList = num2str(rCh) + ";" + num2str(gCh) + ";" + num2str(bCh) + ";"
+	
+	WAVE/Z minMaxW
+	if(!WaveExists(minMaxW))
+		DoAlert/T="Problem" 0, "Missing the min and max wave"
+	endif
 	String clipName = NameOfWave(clip0)
 	Variable nCh = DimSize(clip0,3)
-	Make/O/N=(2,3)/FREE minMaxW
 	Variable xSize = DimSize(clip0,0)
 	Variable ySize = DimSize(clip0,1)	// should be the same as xSize
 	Variable totalPx = xSize * ySize
-	Variable totalOrigPix = DimSize(ImageMat,0) * DimSize(ImageMat,1)
-	Variable chSelect
-	
-	Variable i
-	
-	for(i = 0; i < 3; i += 1)
-	// this was nCh-based. Only doing enough for r g and b
-//		WaveStats/Q/RMD=[][][zPos][i] ImageMat
-//		minMaxW[0][i] = V_min
-//		minMaxW[1][i] = V_max
-		chSelect = str2num(StringFromList(i,rgbList))
-		if(chSelect == -1)
-			continue
-		endif
-		Duplicate/O/FREE/RMD=[][][zPos][chSelect] ImageMat, tempW
-		Redimension/N=(totalOrigPix) tempW
-		Sort tempW,tempW
-		minMaxW[0][i] = tempW[0]
-		minMaxW[1][i] = tempW[floor(totalOrigPix-(totalOrigPix * 0.003))] // ImageJ does something like 0.35%
-	endfor
-	// we now have min and max values for each channel in minMaxW but don't do anything with them 
+
 	String newName = ReplaceString("clp_",clipName,"clp_rgb_")
 	Make/O/N=(xSize,ySize,3)/W $newName
 	Wave rgbClip = $newName
 	if(rCh == -1)
 		rgbClip[][][0] = 0
 	else
-		rgbClip[][][0] = limit(65535 * (clip0[p][q][0][rCh] - minMaxW[0][0]) / (minMaxW[1][0] - minMaxW[0][0]),0,65535)
+		rgbClip[][][0] = limit(65535 * (clip0[p][q][0][rCh] - minMaxW[zPos][0][0]) / (minMaxW[zPos][1][0] - minMaxW[zPos][0][0]),0,65535)
 	endif
 	if(gCh == -1)
 		rgbClip[][][1] = 0
 	else
-		rgbClip[][][1] = limit(65535 * (clip0[p][q][0][gCh] - minMaxW[0][1]) / (minMaxW[1][1] - minMaxW[0][1]),0,65535)
+		rgbClip[][][1] = limit(65535 * (clip0[p][q][0][gCh] - minMaxW[zPos][0][1]) / (minMaxW[zPos][1][1] - minMaxW[zPos][0][1]),0,65535)
 	endif
 	if(bCh == -1)
 		rgbClip[][][2] = 0
 	else
-		rgbClip[][][2] = limit(65535 * (clip0[p][q][0][bCh] - minMaxW[0][2]) / (minMaxW[1][2] - minMaxW[0][2]),0,65535)
+		rgbClip[][][2] = limit(65535 * (clip0[p][q][0][bCh] - minMaxW[zPos][0][2]) / (minMaxW[zPos][1][2] - minMaxW[zPos][0][2]),0,65535)
 	endif
 	return rgbClip
 End
@@ -1510,23 +1517,34 @@ Function StartingPanelForIC()
 	Make/T/O/N=5 ObjWave={"Aligned","Poles","Background","Misaligned","Ensheathed"}
 	Make/T/O/N=4 ChWave={"DNA","Tubulin","ER","CENP-C"}
 	// make global numeric wave for other variables
-	Make/O/N=8 gVarWave={4,41,0.06449999660253525,0.06449999660253525,0.20000000298023224}
+	Make/O/N=8 gVarWave={4,41,0.06449999660253525,0.06449999660253525,0.20000000298023224,2,1,3}
 	// note that this panel will not deal with less/more than 4 channels and 5 objects
 	DoWindow/K SetUp
 	NewPanel/N=SetUp/K=1/W=(81,73,774,298)
-	SetDrawLayer UserBack
 	SetDrawEnv linefgc= (65535,65535,65535),fillfgc= (49151,53155,65535)
 	DrawRect 9,116,176,218
+	SetDrawEnv fillfgc= (65535,0,0)
+	DrawOval 527,80,542,95
+	SetDrawEnv fillfgc= (0,65535,0)
+	DrawOval 527,110,542,125
+	SetDrawEnv fillfgc= (0,0,65535)
+	DrawOval 527,140,542,155
 	Button SelectDir1,pos={12.00,10.00},size={140.00,20.00},proc=ButtonProcIC,title="Select XML Dir"
 	Button SelectDir2,pos={12.00,41.00},size={140.00,20.00},proc=ButtonProcIC,title="Select TIFF Dir"
-	SetVariable Dir1,pos={188.00,13.00},size={480.00,14.00},value= PathWave[0],title="XML Directory"
-	SetVariable Dir2,pos={188.00,44.00},size={480.00,14.00},value= PathWave[1],title="TIFF Directory"
-	SetVariable Obj0,pos={214.00,80.00},size={194.00,14.00},value= ObjWave[0],title="Object 1"
-	SetVariable Obj1,pos={214.00,110.00},size={194.00,14.00},value= ObjWave[1],title="Object 2"
-	SetVariable Obj2,pos={214.00,140.00},size={194.00,14.00},value= ObjWave[2],title="Object 3"
-	SetVariable Obj3,pos={214.00,170.00},size={194.00,14.00},value= ObjWave[3],title="Object 4"
-	SetVariable Obj4,pos={214.00,200.00},size={194.00,14.00},value= ObjWave[4],title="Object 5"
-	
+	SetVariable Dir1,pos={188.00,13.00},size={480.00,14.00},title="XML Directory"
+	SetVariable Dir1,value= PathWave[0]
+	SetVariable Dir2,pos={188.00,44.00},size={480.00,14.00},title="TIFF Directory"
+	SetVariable Dir2,value= PathWave[1]
+	SetVariable Obj0,pos={214.00,80.00},size={132.00,14.00},title="Object 1"
+	SetVariable Obj0,value= ObjWave[0]
+	SetVariable Obj1,pos={214.00,110.00},size={132.00,14.00},title="Object 2"
+	SetVariable Obj1,value= ObjWave[1]
+	SetVariable Obj2,pos={214.00,140.00},size={132.00,14.00},title="Object 3"
+	SetVariable Obj2,value= ObjWave[2]
+	SetVariable Obj3,pos={214.00,170.00},size={132.00,14.00},title="Object 4"
+	SetVariable Obj3,value= ObjWave[3]
+	SetVariable Obj4,pos={214.00,200.00},size={132.00,14.00},title="Object 5"
+	SetVariable Obj4,value= ObjWave[4]
 	SetVariable ChSetVar,pos={12.00,70.00},size={166.00,14.00},title="How many channels?"
 	SetVariable ChSetVar,format="%g",value= gVarWave[0]
 	SetVariable RrSetVar,pos={12.00,90.00},size={166.00,14.00},title="Clip size (px)"
@@ -1537,11 +1555,20 @@ Function StartingPanelForIC()
 	SetVariable yVar,format="%g",value= gVarWave[3]
 	SetVariable zVar,pos={27.00,185.00},size={126.00,14.00},title="z size (nm)"
 	SetVariable zVar,format="%g",value= gVarWave[4]
-
-	SetVariable Ch0,pos={468.00,80.00},size={194.00,14.00},value= ChWave[0],title="Channel 1"
-	SetVariable Ch1,pos={468.00,110.00},size={194.00,14.00},value= ChWave[1],title="Channel 2"
-	SetVariable Ch2,pos={468.00,140.00},size={194.00,14.00},value= ChWave[2],title="Channel 3"
-	SetVariable Ch3,pos={468.00,170.00},size={194.00,14.00},value= ChWave[3],title="Channel 4"
+	SetVariable Ch0,pos={371.00,80.00},size={139.00,14.00},title="Channel 1"
+	SetVariable Ch0,value= ChWave[0]
+	SetVariable Ch1,pos={371.00,110.00},size={139.00,14.00},title="Channel 2"
+	SetVariable Ch1,value= ChWave[1]
+	SetVariable Ch2,pos={371.00,140.00},size={139.00,14.00},title="Channel 3"
+	SetVariable Ch2,value= ChWave[2]
+	SetVariable Ch3,pos={371.00,170.00},size={139.00,14.00},title="Channel 4"
+	SetVariable Ch3,value= ChWave[3]
+	SetVariable rCh,pos={549.00,80.00},size={126.00,14.00},title="Red",format="%g"
+	SetVariable rCh,value= gVarWave[5]
+	SetVariable gCh,pos={549.00,110.00},size={126.00,14.00},title="Green"
+	SetVariable gCh,format="%g",value= gVarWave[6]
+	SetVariable bCh,pos={549.00,140.00},size={126.00,14.00},title="Blue",format="%g"
+	SetVariable bCh,value= gVarWave[7]
 	Button DoIt,pos={564.00,194.00},size={100.00,20.00},proc=ButtonProcIC,title="Do It"
 End
  
