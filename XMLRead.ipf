@@ -8,6 +8,7 @@ Menu "Macros"
 	"Misseg One File...", /Q, WorkflowForXMLAnalysis()
 	"Misseg Directory...", /Q, WorkflowForXMLAnalysisDir()
 	"Image Analysis Directory...", /Q, WorkflowForImageAnalysisDir()
+	"Image Clipping...", /Q, WorkflowForImageClipping()
 End
 
 Function WorkflowForXMLAnalysis()
@@ -36,22 +37,28 @@ End
 
 Function WorkflowForImageAnalysisDir()
 	CleanSlate()
-<<<<<<< HEAD
-	StartingPanel()
+	StartingPanelForIA()
+End
+
+Function WorkflowForImageClipping()
+	CleanSlate()
+	StartingPanelForIC()
 End
 
 STATIC Function IAWrapperFunc()
 	KillWindow/Z SetUp
 	WorkOnDirectoryIA()
-=======
-	Variable okvar = WorkOnDirectoryIA()
-	if(okvar < 0)
-		return -1
-	endif
->>>>>>> 957c63e52765e69844b5183210770abe5be8f464
 	MakeTheLayouts("intens",5,3)
 	SummariseIntensityMeasurements(4)
 	MakeTheLayouts("mean",6,2)
+End
+
+STATIC Function ICWrapperFunc()
+	KillWindow/Z SetUp
+	WorkOnDirectoryIC()
+	MakeTheLayouts("p_rgb",30,21)
+//	SummariseIntensityMeasurements(4)
+//	MakeTheLayouts("mean",6,2)
 End
 
 // Needs XMLUtils XOP
@@ -208,7 +215,9 @@ STATIC Function ScaleAllWaves(correctVar,nCh)
 		mName = StringFromList(i,mList)
 		Wave m0 = $mName
 		if(dimsize(m0,0) == 1)
-			KillWaves/Z m0
+			if(m0[0][2] == -1)
+				KillWaves/Z m0
+			endif
 		else
 			// Z-channel is Z and C combined so
 			m0[][2] = ceil((m0[p][q]) / nCh) - 1 // -1 to make 0-based
@@ -538,7 +547,7 @@ STATIC Function LoadImageAndAnalyse(ImageDiskFolderName,ImageFileName,nCh,rr)
 	endif
 	// Rearrange the image. Upon load, channels are arrayed consecutively
 	// will be x y z c
-	if(RejigImage(OriginalImage,nCh) != 1)
+	if(RejigImage(OriginalImage,nCh,1) != 1)
 		DoAlert/T="Problem" 0, "Image rearrangement did not execute."
 		return -1
 	else
@@ -562,16 +571,65 @@ STATIC Function LoadImageAndAnalyse(ImageDiskFolderName,ImageFileName,nCh,rr)
 	return 1
 End
 
-STATIC Function RejigImage(ImageMat,nCh)
+STATIC Function LoadImageAndClip(ImageDiskFolderName,ImageFileName,nCh,clipSize,ii)
+	String ImageDiskFolderName		// Name of Igor symbolic path or "" to get dialog
+	String ImageFileName		// Name of file to load or "" to get dialog
+	Variable nCh,clipSize // number of channels and size of clip in pixels from dialog
+	Variable ii // index of which dataset we're working on
+	// now convert .dv to .tif
+	if(StringMatch(ImageFileName,"*.tif") == 0)
+		ImageFileName = RemoveEnding(ImageFileName,".dv") + ".tif"
+	endif
+	
+	NewPath/O/Q ImageDiskFolderPath, ImageDiskFolderName
+	ImageLoad/T=tiff/N=OriginalImage/O/P=ImageDiskFolderPath/S=0/LR3D/C=-1 ImageFileName
+	Wave/Z OriginalImage
+	if(!WaveExists(OriginalImage))
+		DoAlert/T="Problem" 0, "Image did not load"
+		return -1
+	endif
+	// Rearrange the image. Upon load, channels are arrayed consecutively
+	// will be x y z c
+	if(RejigImage(OriginalImage,nCh,0) != 1)
+		DoAlert/T="Problem" 0, "Image rearrangement did not execute."
+		return -1
+	else
+		Wave ImgMat16
+	endif
+	// declare the waves from a previous load
+	WAVE/Z mat_1,mat_2,mat_3,mat_4,mat_5
+	if(!WaveExists(mat_3))
+		DoAlert/T="Problem" 0, "No mat_3 (background counter locations)"
+		return -1
+	else
+		WAVE bgW = MakeBgWave(imgMat16,mat_3,4)
+	endif
+	// subtract background values from signed 16-bit ImgMat
+//	ImgMat[][][][] -= bgW[0][s]
+	TakeClips(mat_1,imgMat16,clipSize,ii)
+	TakeClips(mat_2,imgMat16,clipSize,ii)
+	TakeClips(mat_4,imgMat16,clipSize,ii)
+	TakeClips(mat_5,imgMat16,clipSize,ii)
+	TidyUp()
+	return 1
+End
+
+STATIC Function RejigImage(ImageMat,nCh,USVar)
 	WAVE ImageMat
 	Variable nCh
+	Variable USVar // unsigned is 0, signed is 1
 	Variable nFrames = DimSize(ImageMat,2)
 	if(mod(nFrames,nCh) > 0)
 		return -1
 	endif
-	// 16-bit signed not unsigned!
-	Make/O/N=(dimSize(imageMat,0),dimSize(imageMat,1),nFrames/nCh,nCh)/W ImgMat
-	ImgMat[][][][] = ImageMat[p][q][(r * nCh) + mod(s,nCh)]
+	// 16-bit signed or unsigned
+	if(USVar == 0)
+		Make/O/N=(dimSize(imageMat,0),dimSize(imageMat,1),nFrames/nCh,nCh)/U/W ImgMat16
+		ImgMat16[][][][] = ImageMat[p][q][(r * nCh) + mod(s,nCh)]
+	elseif(USVar == 1)
+		Make/O/N=(dimSize(imageMat,0),dimSize(imageMat,1),nFrames/nCh,nCh)/W ImgMat
+		ImgMat[][][][] = ImageMat[p][q][(r * nCh) + mod(s,nCh)]
+	endif
 	return 1
 End
 
@@ -648,6 +706,8 @@ Function MeasureIntensities(objToMeasure,ImageMat,rr)
 	// Image is arrange x y z c
 	Variable xPos,yPos,zPos
 	Variable xPosMin,xPosMax,yPosMin,yPosMax,zPosMin,zPosMax
+	Wave/z ScalingW = root:ScalingW
+	Variable zr = ceil(rr * (ScalingW[0][0] / ScalingW[0][2])) // rr in terms of z scaling
 	
 	Variable i,j
 	
@@ -681,16 +741,16 @@ Function MeasureIntensities(objToMeasure,ImageMat,rr)
 			yPosMax = rr * 2
 		endif
 		// now check if cube area bumps into edges on z
-		if(zPos - rr >= 0)
-			zPosMin = zPos - rr
-			zPosMax = zPos + rr
-			if(zPos + rr > DimSize(ImageMat,2))
+		if(zPos - zr >= 0)
+			zPosMin = zPos - zr
+			zPosMax = zPos + zr
+			if(zPos + zr > DimSize(ImageMat,2))
 				zPosMax = DimSize(ImageMat,2) - 1
-				zPosMin = zPosMax - (rr * 2)
+				zPosMin = zPosMax - (zr * 2)
 			endif
 		else
 			zPosMin = 0
-			zPosMax = rr * 2
+			zPosMax = zr * 2
 			// for large rr it's possible we run out of z-slices, warn about this.
 			if(zPosMax >= DimSize(ImageMat,2))
 				Print "zDim exceeded for", GetDataFolder(0)
@@ -715,9 +775,13 @@ Function/WAVE SendToSphere(cubeImg)
 	Wave cubeImg
 	// deduce variable rr from the size of cubeImg
 	Variable rr = (DimSize(cubeImg,0) - 1) / 2
+	// Because of scaling we will use this instead to make sphereMask
+	Variable xmid = (DimSize(cubeImg,0) - 1) / 2
+	Variable ymid = (DimSize(cubeImg,1) - 1) / 2
+	Variable zmid = (DimSize(cubeImg,2) - 1) / 2
 	Wave/Z sphereMask = root:sphereMask
 	if(!WaveExists(sphereMask))
-		MakeSphereMask(rr)
+		MakeSphereMask(xMid,yMid,zMid)
 	endif
 	Wave/Z sphereMask = root:sphereMask
 	// multiply cubeImg by mask
@@ -736,10 +800,12 @@ Function/WAVE SendToSphere(cubeImg)
 	return theROIAverageWave
 End
 
-STATIC Function MakeSphereMask(rr)
-	Variable rr
-	Variable cubeSize = (rr * 2) + 1
-	Make/O/N=(cubeSize,cubeSize,cubeSize,4)/B root:sphereMask = 0
+STATIC Function MakeSphereMask(xMid,yMid,zMid)
+	Variable xMid,yMid,zMid
+	Variable rr = xMid
+	Wave gVarWave = root:gVarWave
+	Variable nCh = gVarWave[0]
+	Make/O/N=(xMid * 2 + 1,yMid * 2 + 1,zMid * 2 + 1,nCh)/B root:sphereMask = 0
 	Wave sphereMask = root:sphereMask
 	if(rr == 0)
 		sphereMask = 1
@@ -754,7 +820,8 @@ STATIC Function MakeSphereMask(rr)
 //	sphereMask[][][][] = (sqrt((p-rr)^2 + (q-rr)^2 + (r-rr)^2) < rr) ? 1 : 0 // this is unscaled version
 	// scalingW has pixel dimensions in columns
 	Variable rs = rr * ScalingW[0][0]
-	sphereMask[][][][] = (sqrt( (ScalingW[0][0] * (p-rr))^2 + (ScalingW[0][1] * (q-rr))^2 + (ScalingW[0][2] * (r-rr))^2) < rs) ? 1 : 0
+//	sphereMask[][][][] = (sqrt( (ScalingW[0][0] * (p-rr))^2 + (ScalingW[0][1] * (q-rr))^2 + (ScalingW[0][2] * (r-rr))^2) < rs) ? 1 : 0
+	sphereMask[][][][] = (sqrt( (ScalingW[0][0] * (p-xmid))^2 + (ScalingW[0][1] * (q-ymid))^2 + (ScalingW[0][2] * (r-zmid))^2) <= rs) ? 1 : 0
 	return 1
 End
 
@@ -774,11 +841,8 @@ STATIC Function MakeIntWavesForGraphAndPlot(ii)
 	String plotName = "intens_" + num2str(ii)
 	KillWindow/Z $plotName
 	Display/N=$plotName/HIDE=1
-<<<<<<< HEAD
 	Wave/T objWave = root:objWave
 	Wave/T ChWave = root:ChWave
-=======
->>>>>>> 957c63e52765e69844b5183210770abe5be8f464
 	
 	Variable i,j
 	
@@ -805,37 +869,144 @@ STATIC Function MakeIntWavesForGraphAndPlot(ii)
 	endfor
 	Make/O/N=16 xPos = p
 	Make/O/N=16/T xLabel
-<<<<<<< HEAD
 	xLabel[0,;4]=ObjWave[0]
 	xLabel[1,;4]=ObjWave[1]
 	xLabel[2,;4]=ObjWave[3]
 	xLabel[3,;4]=ObjWave[4]
-=======
-	xLabel[0,;4]="Plate"
-	xLabel[1,;4]="Poles"
-	xLabel[2,;4]="Misaligned"
-	xLabel[3,;4]="Ensheathed"
->>>>>>> 957c63e52765e69844b5183210770abe5be8f464
 	ModifyGraph/W=$plotName userticks(bottom)={xPos,xLabel}
 	SetAxis/W=$plotName/A/N=1/E=1 left
 	Label/W=$plotName left "Fluorescence Intensity"
 	ModifyGraph/W=$plotName mode=3,marker=19,mrkThick=0,rgb=(0,0,0,32768)
 	SetAxis/W=$plotName bottom -0.5,15.5
-<<<<<<< HEAD
 	ModifyGraph/W=$plotName tkLblRot(bottom)=90
 	// add channel labels
 	for(i = 0; i < nChannels; i += 1)
 		SetDrawEnv/W=$plotName xcoord= bottom,textxjust= 1,textyjust= 2, fsize= 10
 		DrawText/W=$plotName ((nChannels - 1) / 2 + (nChannels * i)),0,ChWave[i]
 	endfor
-=======
->>>>>>> 957c63e52765e69844b5183210770abe5be8f464
+End
+
+Function TakeClips(objToMeasure,ImageMat,clipSize,ii)
+	Wave/Z objToMeasure,ImageMat
+	Variable clipSize // clipSize in pixels
+	Variable ii // index to tell us what dataset we're working on
+	if(!WaveExists(objToMeasure))
+		return -1
+	endif
+	Variable nPoints = DimSize(objToMeasure,0)
+	if(nPoints == 0)
+		return -1
+	endif
+	Variable nChannels = dimsize(ImageMat,3)
+	// for each row in the objects to measure we'll excise a layer of image data
+	// Image is arrange x y z c
+	Variable xPos,yPos,zPos
+	Variable xPosMin,xPosMax,yPosMin,yPosMax
+	Variable rr = (clipSize - 1) / 2
+	String clipName,plotName
+	
+	Variable i
+	
+	for(i = 0; i < nPoints; i += 1)
+		// integers stored in XML are 0-based for X and Y. Z has been converted
+		xPos = round(objToMeasure[i][0])
+		yPos = round(objToMeasure[i][1])
+		zPos = round(objToMeasure[i][2])
+		// first check if clip area bumps into edges on x
+		if(xPos - rr >= 0)
+			xPosMin = xPos - rr
+			xPosMax = xPos + rr
+			if(xPos + rr >= DimSize(ImageMat,0))
+				xPosMax = DimSize(ImageMat,0) - 1
+				xPosMin = xPosMax - (rr * 2)
+			endif
+		else
+			xPosMin = 0
+			xPosMax = rr * 2
+		endif
+		// now check if cube area bumps into edges on y
+		if(yPos - rr >= 0)
+			yPosMin = yPos - rr
+			yPosMax = yPos + rr
+			if(yPos + rr > DimSize(ImageMat,1))
+				yPosMax = DimSize(ImageMat,1) - 1
+				yPosMin = yPosMax - (rr * 2)
+			endif
+		else
+			yPosMin = 0
+			yPosMax = rr * 2
+		endif
+		// excise the clip
+		clipName = ReplaceString("mat_",NameOfWave(objToMeasure),"clp_") + "_" + num2str(i)
+		Duplicate/O/RMD=[xPosMin,xPosMax][yPosMin,yPosMax][zPos][] ImageMat, $clipName
+		Wave clip0 = $clipName
+		// Make the appropriate RGB images here and make a hidden window - we'll put them in a layout later
+		Wave clip1 = MakeTheImage(clip0, ImageMat, zPos,2,1,3)
+		KillWaves/Z clip0
+		// plotName is p_rgb_0_1_2 for dataset 0, obj 1, row 2
+		plotName = ReplaceString("clp_",clipName,"p_rgb_"+num2str(ii)+"_")
+		KillWindow/Z $plotName
+		NewImage/N=$plotName/HIDE=1/S=0 clip1
+		ModifyGraph/W=$plotName width={Aspect,1}
+	endfor
+End
+
+STATIC Function/WAVE MakeTheImage(clip0,ImageMat,zPos,rCh,gCh,bCh)
+	Wave clip0, ImageMat
+	Variable zPos
+	Variable rCh,gCh,bCh // index of chunk for each channel. -1 means blank
+	String rgbList = num2str(rCh) + ";" + num2str(gCh) + ";" + num2str(bCh) + ";"
+	String clipName = NameOfWave(clip0)
+	Variable nCh = DimSize(clip0,3)
+	Make/O/N=(2,3)/FREE minMaxW
+	Variable xSize = DimSize(clip0,0)
+	Variable ySize = DimSize(clip0,1)	// should be the same as xSize
+	Variable totalPx = xSize * ySize
+	Variable totalOrigPix = DimSize(ImageMat,0) * DimSize(ImageMat,1)
+	Variable chSelect
+	
+	Variable i
+	
+	for(i = 0; i < 3; i += 1)
+	// this was nCh-based. Only doing enough for r g and b
+//		WaveStats/Q/RMD=[][][zPos][i] ImageMat
+//		minMaxW[0][i] = V_min
+//		minMaxW[1][i] = V_max
+		chSelect = str2num(StringFromList(i,rgbList))
+		if(chSelect == -1)
+			continue
+		endif
+		Duplicate/O/FREE/RMD=[][][zPos][chSelect] ImageMat, tempW
+		Redimension/N=(totalOrigPix) tempW
+		Sort tempW,tempW
+		minMaxW[0][i] = tempW[0]
+		minMaxW[1][i] = tempW[floor(totalOrigPix-(totalOrigPix * 0.003))] // ImageJ does something like 0.35%
+	endfor
+	// we now have min and max values for each channel in minMaxW but don't do anything with them 
+	String newName = ReplaceString("clp_",clipName,"clp_rgb_")
+	Make/O/N=(xSize,ySize,3)/W $newName
+	Wave rgbClip = $newName
+	if(rCh == -1)
+		rgbClip[][][0] = 0
+	else
+		rgbClip[][][0] = limit(65535 * (clip0[p][q][0][rCh] - minMaxW[0][0]) / (minMaxW[1][0] - minMaxW[0][0]),0,65535)
+	endif
+	if(gCh == -1)
+		rgbClip[][][1] = 0
+	else
+		rgbClip[][][1] = limit(65535 * (clip0[p][q][0][gCh] - minMaxW[0][1]) / (minMaxW[1][1] - minMaxW[0][1]),0,65535)
+	endif
+	if(bCh == -1)
+		rgbClip[][][2] = 0
+	else
+		rgbClip[][][2] = limit(65535 * (clip0[p][q][0][bCh] - minMaxW[0][2]) / (minMaxW[1][2] - minMaxW[0][2]),0,65535)
+	endif
+	return rgbClip
 End
 
 ////////////////////////////////////////////////////////////////////////
 // Work on many files from a directory
 ////////////////////////////////////////////////////////////////////////
-
 
 Function WorkOnDirectory()
 	NewDataFolder/O/S root:data
@@ -872,35 +1043,12 @@ Function WorkOnDirectory()
 End
 
 Function WorkOnDirectoryIA()
-<<<<<<< HEAD
 
 	Wave gVarWave = root:gVarWave
 	Wave/T pathWave = root:pathWave
 	Variable nCh = gVarWave[0]
 	Variable rr = gVarWave[1]
 	Make/O/N=3 ScalingW = {gVarWave[2],gVarWave[3],gVarWave[4]}
-=======
-	Variable nCh = 4
-	Variable xSize = 0.06449999660253525
-	Variable ySize = 0.06449999660253525
-	Variable zSize = 0.20000000298023224
-	Variable rr = 8
-	String hstr = "XML files from Cell Counter in FIJI are paired with TIFFs for analysis.\r"
-	hstr += "If in doubt, leave this settings as they are."
-		
-	Prompt nCh, "How many channels?"
-	Prompt xSize, "x pixel dimension (nm)"
-	Prompt ySize, "y pixel dimension (nm)"
-	Prompt zSize, "z pixel dimension (nm)"
-	Prompt rr, "Radius for analysis (px)"
-	DoPrompt/HELP=hstr "Specify", nCh,xSize,ySize,zSize,rr
-	
-	if (V_flag) 
-		return -1
-	endif
-	
-	Make/O/N=3/D ScalingW = {xSize,ySize,zSize}
->>>>>>> 957c63e52765e69844b5183210770abe5be8f464
 	MatrixTranspose ScalingW
 		
 	NewDataFolder/O/S root:data
@@ -935,6 +1083,53 @@ Function WorkOnDirectoryIA()
 		ScaleAllWaves(0,nCh)
 		if(LoadImageAndAnalyse(ImageDiskFolderName,ImageFileName,nCh,rr) != -1)
 			MakeIntWavesForGraphAndPlot(i)
+		endif
+		SetDataFolder root:data:
+	endfor
+	SetDataFolder root:
+End
+
+Function WorkOnDirectoryIC()
+
+	Wave gVarWave = root:gVarWave
+	Wave/T pathWave = root:pathWave
+	Variable nCh = gVarWave[0]
+	Variable clipSize = gVarWave[1]
+	Make/O/N=3 ScalingW = {gVarWave[2],gVarWave[3],gVarWave[4]}
+	MatrixTranspose ScalingW
+	
+	NewDataFolder/O/S root:data
+	String expDiskFolderName, expDataFolderName
+	String FileList, ThisFile
+	Variable nWaves, i
+	// XML Dir now pre-selected
+	String pathToFolder = pathWave[0]
+	NewPath/O/Q ExpDiskFolder, pathToFolder
+	PathInfo /S ExpDiskFolder
+	ExpDiskFolderName = S_path
+	FileList = IndexedFile(expDiskFolder,-1,".xml")
+	Variable nFiles = ItemsInList(FileList)
+	Make/O/N=(nFiles)/T root:fileNameWave
+	Wave/T fileNameWave = root:fileNameWave
+	// TIFF Dir pre-selected
+	pathToFolder = pathWave[1]
+	NewPath/O/Q ImageDiskFolder, pathToFolder
+	PathInfo /S ImageDiskFolder
+	String ImageDiskFolderName = S_path
+	String ImageFileName
+	
+	for(i = 0; i < nFiles; i += 1)
+		ThisFile = StringFromList(i,FileList)
+		fileNameWave[i] = ThisFile
+		expDataFolderName = "dataset_" + num2str(i)
+		NewDataFolder/O/S $expDataFolderName
+		ReadXML(ExpDiskFolderName,ThisFile)
+		DealWithDuplicates()
+		WAVE/Z/T fNameWave
+		ImageFileName = fNameWave[0]
+		ScaleAllWaves(0,nCh)
+		if(LoadImageAndClip(ImageDiskFolderName,ImageFileName,nCh,clipSize,i) != -1)
+//			MakeIntWavesForGraphAndPlot(i)
 		endif
 		SetDataFolder root:data:
 	endfor
@@ -1041,13 +1236,9 @@ STATIC Function Graph2DWaves(nCh)
 	String wName, plotName, newName
 	Variable nRows
 	Make/O/N=(nCh) xPos=p
-<<<<<<< HEAD
 	Wave/T objWave = root:objWave
 	Make/O/N=(nCh)/T xLabel={objWave[0],objWave[1],objWave[3],objWave[4]}
 	Wave/T ChWave = root:ChWave
-=======
-	Make/O/N=(nCh)/T xLabel={"Aligned","Poles","Misaligned","Ensheathed"}
->>>>>>> 957c63e52765e69844b5183210770abe5be8f464
 	
 	Variable i
 	
@@ -1069,10 +1260,7 @@ STATIC Function Graph2DWaves(nCh)
 		Label/W=$plotName left "Average intensity"
 		ModifyGraph/W=$plotName mode=3,marker=19,mrkThick=0,rgb=(0,0,0,32768)
 		SetAxis/W=$plotName bottom -0.5,(nCh-0.5)
-<<<<<<< HEAD
 		TextBox/W=$plotName/C/N=text0/F=0/X=0.00/Y=0.00 ChWave[i]
-=======
->>>>>>> 957c63e52765e69844b5183210770abe5be8f464
 	endfor
 End
 
@@ -1223,14 +1411,13 @@ End
 //2 Spindle Poles
 //3 BackGround
 //4 Misaligned Non-ensheathed"
-<<<<<<< HEAD
 //5 Misaligned Ensheathed
 
 ////////////////////////////////////////////////////////////////////////
 // Panel functions
 ////////////////////////////////////////////////////////////////////////
 
-Function StartingPanel()
+Function StartingPanelForIA()
 	// make global text wave to store paths, object and channel info
 	Make/T/O/N=2 PathWave
 	Make/T/O/N=5 ObjWave={"Aligned","Poles","Background","Misaligned","Ensheathed"}
@@ -1317,6 +1504,97 @@ Function ButtonProc(ctrlName) : ButtonControl
 		EndSwitch
 End
 
+Function StartingPanelForIC()
+	// make global text wave to store paths, object and channel info
+	Make/T/O/N=2 PathWave
+	Make/T/O/N=5 ObjWave={"Aligned","Poles","Background","Misaligned","Ensheathed"}
+	Make/T/O/N=4 ChWave={"DNA","Tubulin","ER","CENP-C"}
+	// make global numeric wave for other variables
+	Make/O/N=8 gVarWave={4,41,0.06449999660253525,0.06449999660253525,0.20000000298023224}
+	// note that this panel will not deal with less/more than 4 channels and 5 objects
+	DoWindow/K SetUp
+	NewPanel/N=SetUp/K=1/W=(81,73,774,298)
+	SetDrawLayer UserBack
+	SetDrawEnv linefgc= (65535,65535,65535),fillfgc= (49151,53155,65535)
+	DrawRect 9,116,176,218
+	Button SelectDir1,pos={12.00,10.00},size={140.00,20.00},proc=ButtonProcIC,title="Select XML Dir"
+	Button SelectDir2,pos={12.00,41.00},size={140.00,20.00},proc=ButtonProcIC,title="Select TIFF Dir"
+	SetVariable Dir1,pos={188.00,13.00},size={480.00,14.00},value= PathWave[0],title="XML Directory"
+	SetVariable Dir2,pos={188.00,44.00},size={480.00,14.00},value= PathWave[1],title="TIFF Directory"
+	SetVariable Obj0,pos={214.00,80.00},size={194.00,14.00},value= ObjWave[0],title="Object 1"
+	SetVariable Obj1,pos={214.00,110.00},size={194.00,14.00},value= ObjWave[1],title="Object 2"
+	SetVariable Obj2,pos={214.00,140.00},size={194.00,14.00},value= ObjWave[2],title="Object 3"
+	SetVariable Obj3,pos={214.00,170.00},size={194.00,14.00},value= ObjWave[3],title="Object 4"
+	SetVariable Obj4,pos={214.00,200.00},size={194.00,14.00},value= ObjWave[4],title="Object 5"
+	
+	SetVariable ChSetVar,pos={12.00,70.00},size={166.00,14.00},title="How many channels?"
+	SetVariable ChSetVar,format="%g",value= gVarWave[0]
+	SetVariable RrSetVar,pos={12.00,90.00},size={166.00,14.00},title="Clip size (px)"
+	SetVariable RrSetVar,format="%g",value= gVarWave[1]
+	SetVariable xVar,pos={27.00,135.00},size={126.00,14.00},title="x size (nm)"
+	SetVariable xVar,format="%g",value= gVarWave[2]
+	SetVariable yVar,pos={27.00,160.00},size={126.00,14.00},title="y size (nm)"
+	SetVariable yVar,format="%g",value= gVarWave[3]
+	SetVariable zVar,pos={27.00,185.00},size={126.00,14.00},title="z size (nm)"
+	SetVariable zVar,format="%g",value= gVarWave[4]
+
+	SetVariable Ch0,pos={468.00,80.00},size={194.00,14.00},value= ChWave[0],title="Channel 1"
+	SetVariable Ch1,pos={468.00,110.00},size={194.00,14.00},value= ChWave[1],title="Channel 2"
+	SetVariable Ch2,pos={468.00,140.00},size={194.00,14.00},value= ChWave[2],title="Channel 3"
+	SetVariable Ch3,pos={468.00,170.00},size={194.00,14.00},value= ChWave[3],title="Channel 4"
+	Button DoIt,pos={564.00,194.00},size={100.00,20.00},proc=ButtonProcIC,title="Do It"
+End
+ 
+// define buttons
+Function ButtonProcIC(ctrlName) : ButtonControl
+	String ctrlName
+ 
+		Wave/T PathWave, ObjWave, ChWave
+		Wave gVarWave
+		Variable refnum,okVar
+ 
+		strswitch(ctrlName)
+ 
+			case "SelectDir1"	:
+				// set XML directory
+				NewPath/Q/O/M="Locate folder with XML files" XMLPath
+				PathInfo XMLPath
+				PathWave[0] = S_Path
+				break
+ 
+			case "SelectDir2"	:
+				// set TIFF directory
+				NewPath/Q/O/M="Locate folder with images" TiffPath
+				PathInfo TiffPath
+				PathWave[1] = S_Path
+				break
+ 
+			case "DoIt" :
+				// check CondWave
+				okvar = WaveChecker(PathWave)
+				if (okvar == -1)
+					Print "Error: Not all directories are selected."
+					break
+				endif
+				okvar = NameChecker(objWave)
+				if (okvar == -1)
+					Print "Error: Two objects have the same name."
+					break
+				endif
+				okvar = NameChecker(ChWave)
+				if (okvar == -1)
+					Print "Error: Two channels have the same name."
+					break
+				else
+					// make sure clip size is not an even number
+					if(mod(gVarWave[1],2) == 0)
+						gVarWave[1] += 1
+					endif
+					ICWrapperFunc()
+				endif
+		EndSwitch
+End
+
 STATIC function WaveChecker(TextWaveToCheck)
 	Wave/T TextWaveToCheck
 	Variable nRows = numpnts(TextWaveToCheck)
@@ -1353,6 +1631,32 @@ STATIC function NameChecker(TextWaveToCheck)
 	endfor
 	return 1
 End
-=======
-//5 Misaligned Ensheathed
->>>>>>> 957c63e52765e69844b5183210770abe5be8f464
+
+Function VizSphereMask()
+	WAVE/Z sphereMask = root:sphereMask
+	Duplicate/O/RMD=[][][][0]/FREE sphereMask, theTempMat
+	Redimension/N=(-1,-1,-1) theTempMat
+	// rows are x values, columns are y values and layers are z-values
+	Variable xSize = DimSize(theTempMat,0)
+	Variable ySize = DimSize(theTempMat,1)
+	Variable zSize = DimSize(theTempMat,2)
+	Variable nRows = xSize * ySize * zSize
+	Make/O/N=(nRows,3) cubicLoc
+	cubicLoc[][0] = mod(p,xSize)
+	cubicLoc[][1] = mod(floor(p/ySize),xSize)
+	cubicLoc[][2] = floor(p/(xSize * ySize))
+	Make/O/N=(nRows) cubicVal
+	cubicVal[] = theTempMat[cubicLoc[p][0]][cubicLoc[p][1]][cubicLoc[p][2]]
+	MatrixOp/O colorWaveGiz = colRepeat(cubicVal,4)
+	// set zeros to blank
+	colorWaveGiz[][3] = (cubicVal[p] == 0) ? 0 : 1
+	colorWaveGiz[][1] = 0
+	MatrixOp/O sizeWaveGiz = colRepeat(cubicVal,3)
+	sizeWaveGiz[][] = (cubicVal[p] == 0) ? 0.1 : 0.75
+	NewGizmo
+	AppendToGizmo DefaultScatter= root:cubicLoc
+	ModifyGizmo ModifyObject=scatter0,objectType=scatter,property={ sizeType,1}
+	ModifyGizmo ModifyObject=scatter0,objectType=scatter,property={ sizeWave,root:sizeWaveGiz}
+	ModifyGizmo ModifyObject=scatter0,objectType=scatter,property={ scatterColorType,1}
+	ModifyGizmo ModifyObject=scatter0,objectType=scatter,property={ colorWave,root:colorWaveGiz}
+End
