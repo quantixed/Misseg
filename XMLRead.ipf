@@ -277,7 +277,7 @@ STATIC Function OrientationOfObjects()
 				closestPole = 0
 			endif
 			// work out the angle to the nearest pole for each row of the object
-			w1[j] = 90 + (atan2(mat_2[closestPole][1] - m0[j][1],mat_2[closestPole][0] - m0[j][0]) * (180/Pi))
+			w1[j] = 90 - (atan2(mat_2[closestPole][1] - m0[j][1],mat_2[closestPole][0] - m0[j][0]) * (180/Pi))
 			// special case of mat_2
 			if(stringmatch(mName, "mat_2") == 1)
 				if(j == 0)
@@ -285,7 +285,7 @@ STATIC Function OrientationOfObjects()
 				elseif(j == 1)
 					closestPole = 0
 				endif
-				w1[j] = 90 + (atan2(mat_2[closestPole][1] - m0[j][1],mat_2[closestPole][0] - m0[j][0]) * (180/Pi))
+				w1[j] = 90 - (atan2(mat_2[closestPole][1] - m0[j][1],mat_2[closestPole][0] - m0[j][0]) * (180/Pi))
 			endif
 		endfor
 	endfor
@@ -1034,8 +1034,12 @@ STATIC Function/WAVE MakeTheImage(clip0,zPos,rCh,gCh,bCh)
 	Variable totalPx = xSize * ySize
 
 	String newName = ReplaceString("clp_",clipName,"clp_rgb_")
-	Make/O/N=(xSize,ySize,3)/W $newName
+	Make/O/N=(xSize,ySize,3)/W/U $newName
 	Wave rgbClip = $newName
+	// for testing
+//	rgbClip[][][0] = clip0[p][q][0][rCh]
+//	rgbClip[][][1] = clip0[p][q][0][gCh]
+//	rgbClip[][][2] = clip0[p][q][0][bCh]
 	if(rCh == -1)
 		rgbClip[][][0] = 0
 	else
@@ -1484,23 +1488,14 @@ Function CollateImagesToAverage()
 		wName = "all_ave_" + theTarget
 		Concatenate/O catList, $wName
 		Wave w0 = $wName
-		imgList = ""
-		for(j = 0; j < 3; j += 1)
-			newName = wName + "_" + num2str(j)
-			Duplicate/O/RMD=[][][j][] w0, $newName
-			Wave w1 = $newName
-			Redimension/N=(DimSize(w1,0),DimSize(w1,1),DimSize(w1,3)) w1
-			ImageTransform averageImage w1
-			KillWaves/Z w1
-			Rename M_AveImage, $newName
-			imgList += newName + ";"
-		endfor
+		ImageTransform averageRGBimages w0
+		WAVE/Z M_AverageRGBIMage
 		KillWaves/Z w0
-		Concatenate/O/KILL imgList, $wName
-		Wave w1 = $wName
+		Rename M_AverageRGBImage, $wName
+		Wave w0 = $wName
 		plotName = ReplaceString("all_ave_",wName,"p_ave_")
 		KillWindow/Z $plotName
-		NewImage/N=$plotName/HIDE=1/S=0 w1
+		NewImage/N=$plotName/HIDE=1/S=0 M_AverageRGBIMage
 		ModifyGraph/W=$plotName width={Aspect,1}
 	endfor
 End
