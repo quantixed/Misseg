@@ -56,12 +56,14 @@ End
 STATIC Function ICWrapperFunc()
 	KillWindow/Z SetUp
 	WorkOnDirectoryIC()
-	CollateImagesToAverage()
+//	CollateImagesToAverage()
+	CollateImagesToAverage(nSample = 20)
 	WAVE/Z gVarWave = root:gVarWave
 	// size the images on the layout to clipsize
 	MakeTheLayouts("p_rgb",floor((gVarWave[1]/2) * 1.5),ceil(gVarWave[1]/2))
 	MakeTheLayouts("p_rot",floor((gVarWave[1]/2) * 1.5),ceil(gVarWave[1]/2))
 	MakeTheLayouts("p_ave",6,4)
+	MakeTheLayouts("p_mtg",6,1)
 End
 
 // Needs XMLUtils XOP
@@ -1007,14 +1009,14 @@ Function TakeClips(objToMeasure,ImageMat,clipSize,ii)
 		plotName = ReplaceString("clp_",clipName,"p_rgb_"+num2str(ii)+"_")
 		KillWindow/Z $plotName
 		NewImage/N=$plotName/HIDE=1/S=0 clip1
-		ModifyGraph/W=$plotName width={Aspect,1}
+		ModifyGraph/W=$plotName width={Plan,1,top,left}
 		// Now we'll make a rotated version
 		Wave clip2 = MakeRotatedImage(clip1)
 		// plotName is p_rgb_0_1_2 for dataset 0, obj 1, row 2
 		plotName = ReplaceString("p_rgb_",plotName,"p_rot_")
 		KillWindow/Z $plotName
 		NewImage/N=$plotName/HIDE=1/S=0 clip2
-		ModifyGraph/W=$plotName width={Aspect,1}
+		ModifyGraph/W=$plotName width={Plan,1,top,left}
 	endfor
 End
 
@@ -1389,7 +1391,11 @@ STATIC Function MakeTheLayouts(prefix,nRow,nCol)
 		endif
 	endfor
 	String fileName = layoutName + ".pdf"
-	SavePICT/PGR=(1,-1)/E=-2/W=(0,0,0,0) as fileName
+	String folderStr
+	// specific to this ipf
+	WAVE/Z/T PathWave
+	NewPath/C/O/Q/Z outputFolder PathWave[1]
+	SavePICT/O/P=outputFolder/PGR=(1,-1)/E=-2/W=(0,0,0,0) as fileName
 End
 
 Function MakeTheGizmos()
@@ -1454,7 +1460,10 @@ Function MakeTheGizmos()
 	endfor
 End
 
-Function CollateImagesToAverage()
+Function CollateImagesToAverage([nSample])
+	Variable nSample // optional parameter to determine sample size
+	if(ParamIsDefault(nSample))
+	endif
 	SetDataFolder root:data:	// relies on earlier load
 	DFREF dfr = GetDataFolderDFR()
 	String folderName
@@ -1480,11 +1489,22 @@ Function CollateImagesToAverage()
 	Variable nTargets = ItemsInList(targets)
 	String theTarget,catList,wName,plotname,imgList,newName
 	
-	Variable j
+	// check that we have enough to do the average of nSample and adjust if not
+	for(i = 0; i < nTargets; i += 1)
+		theTarget = StringFromList(i,targets)
+		catList = ListMatch(wList, "*rot_" + theTarget + "_*")
+		nSample = min(ItemsInList(catList),nSample)
+	endfor
 	
 	for(i = 0; i < nTargets; i += 1)
 		theTarget = StringFromList(i,targets)
 		catList = ListMatch(wList, "*rot_" + theTarget + "_*")
+		Make/O/N=(ItemsInList(catList))/FREE allRowsW = p
+		StatsSample/N=(nSample)/Q allRowsW
+		WAVE/Z W_Sampled
+		Make/O/N=(nSample)/T/FREE allRotW = StringFromList(W_Sampled[p],catList)
+		// reassign catList to the sampled imgs
+		wfprintf catList, "%s;", allRotW
 		wName = "all_ave_" + theTarget
 		Concatenate/O catList, $wName
 		Wave w0 = $wName
@@ -1496,7 +1516,8 @@ Function CollateImagesToAverage()
 		plotName = ReplaceString("all_ave_",wName,"p_ave_")
 		KillWindow/Z $plotName
 		NewImage/N=$plotName/HIDE=1/S=0 M_AverageRGBIMage
-		ModifyGraph/W=$plotName width={Aspect,1}
+		ModifyGraph/W=$plotName width={Plan,1,top,left}
+		RGB2Montage(w0,4)
 	endfor
 End
 
@@ -1543,6 +1564,59 @@ STATIC Function MakeCube(m0)
 	//make mat
 	Concatenate/O/NP=1/FREE {c0,c1,c2},octMat
 	m0[][] = m0[p][q] * octMat[p][q]
+End
+
+STATIC Function RGB2Montage(masterImage,grout)
+	Wave masterImage
+	Variable grout
+	Variable nRows = 1
+	Variable nColumns = 4
+	
+	String mtgName = "mtg_" + NameOfWave(masterImage)
+	
+	if(!WaveExists(masterImage))
+		Print "Image does not exist"
+		return 0
+	endif
+	
+	// This is for RGB images only
+	Variable cSize = dimsize(masterImage,2)
+	Variable xSize = dimsize(masterImage,1)
+	Variable ySize = dimsize(masterImage,0)
+	Variable x1 = (xSize * nColumns) + (grout * (nColumns-1))
+	Variable y1 = (ySize * nRows) + (grout * (nRows-1))
+	if(cSize != 3)
+		Print NameOfWave(masterImage) + " is not an RGB image."
+		return -1
+	else
+		Make/W/U/O/N=(x1,y1,3) $mtgName
+	endif
+	Wave newMontage = $mtgName
+	// make it white
+	newMontage[][] = 65535
+	
+	Variable xPos=0,yPos=0
+	Variable i,j
+	
+	for(i = 0; i < nColumns; i += 1)
+		xPos = mod(i,nColumns)
+		yPos = floor(i/nColumns)
+		x1 = (xSize * xPos) + (grout * xPos)
+		y1 = (ySize * yPos) + (grout * yPos)
+		// at this position we paste in the channels
+		for(j = 0; j < 3; j += 1)
+			if(i == 3)
+				Duplicate/O/FREE/RMD=[][][j] masterImage, subImage
+			else
+				Duplicate/O/FREE/RMD=[][][i] masterImage, subImage
+			endif
+			ImageTransform/P=(j)/INSI=subImage/INSX=(x1)/INSY=(y1) InsertImage newMontage
+		endfor
+	endfor
+	String plotName = "p_mtg_" + NameOfWave(masterImage)
+	KillWindow/Z $plotName
+	NewImage/N=$plotName/S=0 newMontage
+	ModifyGraph/W=$plotName width={Plan,1,top,left}
 End
 
 // Note that this was written for XML where the following were picked out (by index)
