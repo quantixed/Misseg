@@ -56,14 +56,13 @@ End
 STATIC Function ICWrapperFunc()
 	KillWindow/Z SetUp
 	WorkOnDirectoryIC()
-//	CollateImagesToAverage()
-	CollateImagesToAverage(nSample = 20)
 	WAVE/Z gVarWave = root:gVarWave
 	// size the images on the layout to clipsize
 	MakeTheLayouts("p_rgb",floor((gVarWave[1]/2) * 1.5),ceil(gVarWave[1]/2))
+	CollateImagesToAverage(20,5)
 	MakeTheLayouts("p_rot",floor((gVarWave[1]/2) * 1.5),ceil(gVarWave[1]/2))
-	MakeTheLayouts("p_ave",6,4)
-	MakeTheLayouts("p_mtg",6,1)
+	KillTheLayout("p_rgb")
+	KillTheLayout("p_rot")
 End
 
 // Needs XMLUtils XOP
@@ -1360,9 +1359,10 @@ STATIC Function Graph2DWaves(nCh)
 	endfor
 End
 
-STATIC Function MakeTheLayouts(prefix,nRow,nCol)
+STATIC Function MakeTheLayouts(prefix,nRow,nCol,[iter])
 	String prefix
 	Variable nRow, nCol
+	Variable iter
 	
 	String layoutName = "all"+prefix+"Layout"
 	DoWindow/K $layoutName
@@ -1390,7 +1390,12 @@ STATIC Function MakeTheLayouts(prefix,nRow,nCol)
 			endif
 		endif
 	endfor
-	String fileName = layoutName + ".pdf"
+	String fileName
+	if(!ParamIsDefault(iter))
+		fileName = layoutName + num2str(iter) + ".pdf"
+	else
+		fileName = layoutName + ".pdf"
+	endif
 	String folderStr
 	// specific to this ipf
 	WAVE/Z/T PathWave
@@ -1460,10 +1465,9 @@ Function MakeTheGizmos()
 	endfor
 End
 
-Function CollateImagesToAverage([nSample])
-	Variable nSample // optional parameter to determine sample size
-	if(ParamIsDefault(nSample))
-	endif
+Function CollateImagesToAverage(nSample,nIter)
+	Variable nSample // to determine sample size
+	Variable nIter
 	SetDataFolder root:data:	// relies on earlier load
 	DFREF dfr = GetDataFolderDFR()
 	String folderName
@@ -1474,7 +1478,7 @@ Function CollateImagesToAverage([nSample])
 	String wList = ""
 	String subList
 	
-	Variable i
+	Variable i,ii
 	// assemble a string of semi-colon separated targets in all data folders
 	for(i = 0; i < numDataFolders; i += 1)
 		folderName = "root:data:" + GetIndexedObjNameDFR(dfr, 4, i)
@@ -1496,28 +1500,32 @@ Function CollateImagesToAverage([nSample])
 		nSample = min(ItemsInList(catList),nSample)
 	endfor
 	
-	for(i = 0; i < nTargets; i += 1)
-		theTarget = StringFromList(i,targets)
-		catList = ListMatch(wList, "*rot_" + theTarget + "_*")
-		Make/O/N=(ItemsInList(catList))/FREE allRowsW = p
-		StatsSample/N=(nSample)/Q allRowsW
-		WAVE/Z W_Sampled
-		Make/O/N=(nSample)/T/FREE allRotW = StringFromList(W_Sampled[p],catList)
-		// reassign catList to the sampled imgs
-		wfprintf catList, "%s;", allRotW
-		wName = "all_ave_" + theTarget
-		Concatenate/O catList, $wName
-		Wave w0 = $wName
-		ImageTransform averageRGBimages w0
-		WAVE/Z M_AverageRGBIMage
-		KillWaves/Z w0
-		Rename M_AverageRGBImage, $wName
-		Wave w0 = $wName
-		plotName = ReplaceString("all_ave_",wName,"p_ave_")
-		KillWindow/Z $plotName
-		NewImage/N=$plotName/HIDE=1/S=0 M_AverageRGBIMage
-		ModifyGraph/W=$plotName width={Plan,1,top,left}
-		RGB2Montage(w0,4)
+	for(ii = 0; ii < nIter; ii += 1)
+		for(i = 0; i < nTargets; i += 1)
+			theTarget = StringFromList(i,targets)
+			catList = ListMatch(wList, "*rot_" + theTarget + "_*")
+			Make/O/N=(ItemsInList(catList))/FREE allRowsW = p
+			StatsSample/N=(nSample)/Q allRowsW
+			WAVE/Z W_Sampled
+			Make/O/N=(nSample)/T/FREE allRotW = StringFromList(W_Sampled[p],catList)
+			// reassign catList to the sampled imgs
+			wfprintf catList, "%s;", allRotW
+			wName = "all_ave_" + theTarget
+			Concatenate/O catList, $wName
+			Wave w0 = $wName
+			ImageTransform averageRGBimages w0
+			WAVE/Z M_AverageRGBIMage
+			KillWaves/Z w0
+			Duplicate/O M_AverageRGBImage, $wName
+			Wave w0 = $wName
+			plotName = ReplaceString("all_ave_",wName,"p_ave_")
+			KillWindow/Z $plotName
+			NewImage/N=$plotName/HIDE=1/S=0 M_AverageRGBIMage
+			ModifyGraph/W=$plotName width={Plan,1,top,left}
+			RGB2Montage(w0,4)
+		endfor
+		MakeTheLayouts("p_mtg",6,1,iter = ii)
+		KillTheLayout("p_mtg")
 	endfor
 End
 
@@ -1548,6 +1556,25 @@ STATIC Function CleanSlate()
 			KillDataFolder $name		
 		endif
 	endfor
+End
+
+// Use this to kill layouts and contents made with MakeTheLayouts
+STATIC Function KillTheLayout(prefix)
+	String prefix
+	String layoutName = "all"+prefix+"Layout"
+	DoWindow/K $layoutName
+	
+	SetDataFolder root:
+	String fullList = WinList(prefix + "_*", ";","WIN:1")
+	Variable allItems = ItemsInList(fullList)
+	String name
+	Variable i
+ 
+	for(i = 0; i < allItems; i += 1)
+		name = StringFromList(i, fullList)
+		KillWindow/Z $name		
+	endfor
+	
 End
 
 STATIC Function MakeCube(m0)
