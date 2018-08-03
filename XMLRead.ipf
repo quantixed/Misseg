@@ -1,9 +1,9 @@
 #pragma TextEncoding = "UTF-8"
 #pragma rtGlobals=3		// Use modern global access method and strict wave access.
 
-// Front-end dialog to allow user to pick XML file and also to pick image - optional
-// Give the option to define which counter point is which
-// Give the option to change the scaling of the image
+////////////////////////////////////////////////////////////////////////
+// Menu items
+////////////////////////////////////////////////////////////////////////
 Menu "Macros"
 	"Misseg One File...", /Q, WorkflowForXMLAnalysis()
 	"Misseg Directory...", /Q, WorkflowForXMLAnalysisDir()
@@ -11,6 +11,9 @@ Menu "Macros"
 	"Image Clipping...", /Q, WorkflowForImageClipping()
 End
 
+////////////////////////////////////////////////////////////////////////
+// Master functions and wrappers
+////////////////////////////////////////////////////////////////////////
 Function WorkflowForXMLAnalysis()
 	CleanSlate()
 	ReadXML("","")
@@ -45,6 +48,7 @@ Function WorkflowForImageClipping()
 	StartingPanelForIC()
 End
 
+// After clicking do it on the panel we come here
 STATIC Function IAWrapperFunc()
 	KillWindow/Z SetUp
 	WorkOnDirectoryIA()
@@ -53,18 +57,28 @@ STATIC Function IAWrapperFunc()
 	MakeTheLayouts("mean",6,2)
 End
 
+// After clicking do it on the panel we come here
 STATIC Function ICWrapperFunc()
 	KillWindow/Z SetUp
 	WorkOnDirectoryIC()
 	WAVE/Z gVarWave = root:gVarWave
 	// size the images on the layout to clipsize
-	MakeTheLayouts("p_rgb",floor((gVarWave[1]/2) * 1.5),ceil(gVarWave[1]/2))
-	CollateImagesToAverage(20,5)
-	MakeTheLayouts("p_rot",floor((gVarWave[1]/2) * 1.5),ceil(gVarWave[1]/2))
-	KillTheLayout("p_rgb")
-	KillTheLayout("p_rot")
+	MakeTheLayouts("p_rgb",floor((gVarWave[1]/2) * 1.5),ceil(gVarWave[1]/2),filtVar = 1)
+	MakeTheLayouts("p_rgb",floor((gVarWave[1]/2) * 1.5),ceil(gVarWave[1]/2),filtVar = 2)
+	MakeTheLayouts("p_rgb",floor((gVarWave[1]/2) * 1.5),ceil(gVarWave[1]/2),filtVar = 4)
+	MakeTheLayouts("p_rgb",floor((gVarWave[1]/2) * 1.5),ceil(gVarWave[1]/2),filtVar = 5)
+	CollateImagesToAverageByDistance(20,5)
+	MakeTheLayouts("p_rot",floor((gVarWave[1]/2) * 1.5),ceil(gVarWave[1]/2),filtVar = 1)
+	MakeTheLayouts("p_rot",floor((gVarWave[1]/2) * 1.5),ceil(gVarWave[1]/2),filtVar = 2)
+	MakeTheLayouts("p_rot",floor((gVarWave[1]/2) * 1.5),ceil(gVarWave[1]/2),filtVar = 4)
+	MakeTheLayouts("p_rot",floor((gVarWave[1]/2) * 1.5),ceil(gVarWave[1]/2),filtVar = 5)
+	KillTheLayout("p_rgb",1)
+	KillTheLayout("p_rot",1)
 End
 
+////////////////////////////////////////////////////////////////////////
+// Main functions
+////////////////////////////////////////////////////////////////////////
 // Needs XMLUtils XOP
 Function ReadXML(pathName,fileName)
 	String pathName		// Name of Igor symbolic path or "" to get dialog
@@ -251,6 +265,8 @@ STATIC Function ZapNansFrom2DWave(m0)
 end
 
 // Find the angle for rotation of clip relative to closest spindle pole
+// We will make a new wave named ont_ (for orientation) that contains the
+// angle for rotation, the closest pole and the distance to it 
 STATIC Function OrientationOfObjects()
 	String mList = WaveList("mat_*",";","")
 	Variable nWaves = ItemsInList(mList)
@@ -266,19 +282,23 @@ STATIC Function OrientationOfObjects()
 		Wave m0 = $mName
 		nRows = DimSize(m0,0)
 		newName = ReplaceString("mat_",mName,"ont_")
-		Make/O/N=(nRows) $newName
+		Make/O/N=(nRows,3) $newName
 		Wave w1 = $newName
 		for(j = 0; j < nRows; j += 1)
 			// find the closest pole
 			dist0 = sqrt((m0[j][0] - mat_2[0][0])^2 + (m0[j][1] - mat_2[0][1])^2)
 			dist1 = sqrt((m0[j][0] - mat_2[1][0])^2 + (m0[j][1] - mat_2[1][1])^2)
+			// store shortest distance in column 0
+			w1[j][0] = min(dist0,dist1)
 			if(dist0 > dist1)
 				closestPole = 1
 			else
 				closestPole = 0
 			endif
-			// work out the angle to the nearest pole for each row of the object
-			w1[j] = 90 - (atan2(mat_2[closestPole][1] - m0[j][1],mat_2[closestPole][0] - m0[j][0]) * (180/Pi))
+			// store clostest pole
+			w1[j][1] = closestPole
+			// work out the angle to the nearest pole for each row of the object and store that
+			w1[j][2] = 90 - (atan2(mat_2[closestPole][1] - m0[j][1],mat_2[closestPole][0] - m0[j][0]) * (180/Pi))
 			// special case of mat_2
 			if(stringmatch(mName, "mat_2") == 1)
 				if(j == 0)
@@ -286,7 +306,7 @@ STATIC Function OrientationOfObjects()
 				elseif(j == 1)
 					closestPole = 0
 				endif
-				w1[j] = 90 - (atan2(mat_2[closestPole][1] - m0[j][1],mat_2[closestPole][0] - m0[j][0]) * (180/Pi))
+				w1[j][2] = 90 - (atan2(mat_2[closestPole][1] - m0[j][1],mat_2[closestPole][0] - m0[j][0]) * (180/Pi))
 			endif
 		endfor
 	endfor
@@ -458,7 +478,7 @@ End
 
 Function ClassifyMisaligned()
 	WAVE/Z r_Mat_1,r_Mat_2,r_Mat_4,r_Mat_5
-	// get pointset of poles plus kientochores at plate
+	// get pointset of poles plus kinetochores at plate
 	Concatenate/O/NP=0 {r_Mat_1,r_Mat_2}, r_Mat_Spindle
 	Triangulate3D/VOL r_Mat_Spindle
 	Variable spindleVol = V_Value
@@ -859,17 +879,15 @@ STATIC Function MakeSphereMask(xMid,yMid,zMid)
 		return -1
 	endif
 	// centre of cube is rr,rr,rr
-//	sphereMask[][][][] = (sqrt((p-rr)^2 + (q-rr)^2 + (r-rr)^2) < rr) ? 1 : 0 // this is unscaled version
 	// scalingW has pixel dimensions in columns
 	Variable rs = rr * ScalingW[0][0]
-//	sphereMask[][][][] = (sqrt( (ScalingW[0][0] * (p-rr))^2 + (ScalingW[0][1] * (q-rr))^2 + (ScalingW[0][2] * (r-rr))^2) < rs) ? 1 : 0
 	sphereMask[][][][] = (sqrt( (ScalingW[0][0] * (p-xmid))^2 + (ScalingW[0][1] * (q-ymid))^2 + (ScalingW[0][2] * (r-zmid))^2) <= rs) ? 1 : 0
 	return 1
 End
 
 Function TidyUp()
-	WAVE/Z M_xmlcontent,OriginalImage,ScalingW,W_ElementList,W_xmlcontentnodes,ImgMat
-	KillWaves/Z M_xmlcontent,OriginalImage,ScalingW,W_ElementList,W_xmlcontentnodes,ImgMat
+	WAVE/Z M_xmlcontent,OriginalImage,ScalingW,W_ElementList,W_xmlcontentnodes,ImgMat,ImgMat16
+	KillWaves/Z M_xmlcontent,OriginalImage,ScalingW,W_ElementList,W_xmlcontentnodes,ImgMat,ImgMat16
 End
 
 STATIC Function MakeIntWavesForGraphAndPlot(ii)
@@ -934,8 +952,10 @@ STATIC Function MakeMinMaxWave(ImageMat,rCh,gCh,bCh)
 	String rgbList = num2str(rCh) + ";" + num2str(gCh) + ";" + num2str(bCh) + ";"
 	Variable nZ = DimSize(ImageMat,2)
 	Make/O/N=(nZ,2,3) minMaxW // rows for z, columns min and max, layers r g b
-	Variable totalOrigPix = DimSize(ImageMat,0) * DimSize(ImageMat,1)
 	Variable chSelect
+	Variable minLevel, maxLevel, range
+	Variable lowerCentile = 0.0035 / 2
+	Variable upperCentile = 1 - lowerCentile
 	
 	Variable i,j
 	
@@ -946,10 +966,19 @@ STATIC Function MakeMinMaxWave(ImageMat,rCh,gCh,bCh)
 				continue
 			endif
 			Duplicate/O/FREE/RMD=[][][i][chSelect] ImageMat, tempW
-			Redimension/N=(totalOrigPix) tempW
-			Sort tempW,tempW
-			minMaxW[i][0][j] = tempW[0]
-			minMaxW[i][1][j] = tempW[floor(totalOrigPix-(totalOrigPix * 0.003))] // ImageJ does something like 0.35%
+			Redimension/N=(-1,-1) tempW
+			ImageHistogram/I tempW
+			WAVE/Z W_ImageHist
+			Integrate W_ImageHist/D=cumHist
+			minLevel = cumHist[0]
+			maxLevel = cumHist[dimsize(cumHist,0) - 1]
+			range = maxLevel - minLevel
+			FindLevel/Q cumHist, minLevel + range * lowerCentile
+			minMaxW[i][0][j] = V_levelX
+			FindLevel/Q cumHist, minLevel + range * upperCentile
+			minMaxW[i][1][j] = V_levelX
+			//MatrixOp/O thresholdedImage = clip(Image,lowerThreshold,upperThreshold)
+			KillWaves/Z W_ImageHist, cumHist
 		endfor
 	endfor
 End
@@ -1072,7 +1101,7 @@ STATIC Function/WAVE MakeRotatedImage(clip1)
 	String newName = ReplaceString("clp_rgb_",clipName,"clp_rot_")
 	Duplicate/O clip1, $newName
 	Wave rotClip = $newName
-	ImageRotate/A=(theAngleW[str2num(rowNo)])/O/Q/RGBA=(0,0,0) rotClip
+	ImageRotate/A=(theAngleW[str2num(rowNo)][2])/O/Q/RGBA=(0,0,0) rotClip
 	
 	Variable xSizeOrig = DimSize(clip1,0)
 	Variable ySizeOrig = DimSize(clip1,1)	// should be the same as xSize
@@ -1099,11 +1128,7 @@ STATIC Function/WAVE MakeRotatedImage(clip1)
 	return rotClip
 End
 
-
-////////////////////////////////////////////////////////////////////////
 // Work on many files from a directory
-////////////////////////////////////////////////////////////////////////
-
 Function WorkOnDirectory()
 	NewDataFolder/O/S root:data
 	String expDiskFolderName, expDataFolderName
@@ -1138,8 +1163,8 @@ Function WorkOnDirectory()
 	SetDataFolder root:
 End
 
+// Work on many files from a directory
 Function WorkOnDirectoryIA()
-
 	Wave gVarWave = root:gVarWave
 	Wave/T pathWave = root:pathWave
 	Variable nCh = gVarWave[0]
@@ -1185,8 +1210,8 @@ Function WorkOnDirectoryIA()
 	SetDataFolder root:
 End
 
+// Work on many files from a directory
 Function WorkOnDirectoryIC()
-
 	Wave gVarWave = root:gVarWave
 	Wave/T pathWave = root:pathWave
 	Variable nCh = gVarWave[0]
@@ -1359,21 +1384,39 @@ STATIC Function Graph2DWaves(nCh)
 	endfor
 End
 
-STATIC Function MakeTheLayouts(prefix,nRow,nCol,[iter])
+STATIC Function MakeTheLayouts(prefix,nRow,nCol,[iter, filtVar])
 	String prefix
 	Variable nRow, nCol
-	Variable iter
+	Variable iter	// this is if we are doing multiple iterations of the same layout
+	Variable filtVar // this is the object we want to filter for
+	if(ParamIsDefault(filtVar) == 0)
+		String filtStr = prefix + "_*_" + num2str(filtVar) + "_*"	// this is if we want to filter for this string from the prefix
+	endif
 	
 	String layoutName = "all"+prefix+"Layout"
 	DoWindow/K $layoutName
 	NewLayout/N=$layoutName
-	String modList = WinList(prefix+"_*",";","WIN:1")
-	Variable nWindows = ItemsInList(modList)
-	Variable PlotsPerPage = nRow * nCol
+	String allList = WinList(prefix+"_*",";","WIN:1")
+	String modList = allList
+	Variable nWindows = ItemsInList(allList)
 	String plotName
+	
+	Variable i
+	
+	if(ParamIsDefault(filtVar) == 0)
+		modList = "" // reinitialise
+		for(i = 0; i < nWindows; i += 1)
+			plotName = StringFromList(i,allList)
+			if(stringmatch(plotName,filtStr) == 1)
+				modList += plotName + ";"
+			endif
+		endfor
+	endif
+	nWindows = ItemsInList(modList)
+	Variable PlotsPerPage = nRow * nCol
 	String exString = "Tile/A=(" + num2str(ceil(PlotsPerPage/nCol)) + ","+num2str(nCol)+")"
 	
-	Variable i,pgNum=1
+	Variable pgNum=1
 	
 	for(i = 0; i < nWindows; i += 1)
 		plotName = StringFromList(i,modList)
@@ -1395,6 +1438,9 @@ STATIC Function MakeTheLayouts(prefix,nRow,nCol,[iter])
 		fileName = layoutName + num2str(iter) + ".pdf"
 	else
 		fileName = layoutName + ".pdf"
+	endif
+	if(ParamIsDefault(filtVar) == 0)
+		fileName = ReplaceString(".pdf",fileName, "_" + num2str(filtVar) + ".pdf")
 	endif
 	String folderStr
 	// specific to this ipf
@@ -1468,6 +1514,7 @@ End
 Function CollateImagesToAverage(nSample,nIter)
 	Variable nSample // to determine sample size
 	Variable nIter
+	
 	SetDataFolder root:data:	// relies on earlier load
 	DFREF dfr = GetDataFolderDFR()
 	String folderName
@@ -1525,8 +1572,104 @@ Function CollateImagesToAverage(nSample,nIter)
 			RGB2Montage(w0,4)
 		endfor
 		MakeTheLayouts("p_mtg",6,1,iter = ii)
-		KillTheLayout("p_mtg")
+		KillTheLayout("p_mtg",0)
 	endfor
+End
+
+Function CollateImagesToAverageByDistance(nSample,nIter)
+	Variable nSample // to determine sample size
+	Variable nIter
+
+	SetDataFolder root:data:	// relies on earlier load
+	DFREF dfr = GetDataFolderDFR()
+	String folderName
+	Variable numDataFolders = CountObjectsDFR(dfr, 4)
+	if(numDataFolders == 0)
+		return -1
+	endif
+	String wList = ""
+	String subList
+	
+	Variable i,ii
+	// assemble a string of semi-colon separated targets in all data folders
+	for(i = 0; i < numDataFolders; i += 1)
+		folderName = "root:data:" + GetIndexedObjNameDFR(dfr, 4, i)
+		SetDataFolder folderName
+		subList = WaveList("clp_rot_*",";","")
+		subList = ReplaceString("clp_",subList,folderName + ":" + "clp_")
+		wList += subList
+		SetDataFolder root:data:
+	endfor
+	SetDataFolder root:
+	String targets = "1;2;4;5;"
+	Variable nTargets = ItemsInList(targets)
+	String theTarget,catList,wName,plotname,imgList,newName
+	// first check whether nSample exceeds the upper half of mat_5 objects by distance to nearest pole
+	catList = ListMatch(wList, "*rot_5_*")
+	nSample = min(floor(ItemsInList(catList) / 2),nSample)
+	
+	// now check that we have enough to do the average of nSample and adjust if not
+	for(i = 0; i < nTargets; i += 1)
+		theTarget = StringFromList(i,targets)
+		catList = ListMatch(wList, "*rot_" + theTarget + "_*")
+		nSample = min(ItemsInList(catList),nSample)
+	endfor
+	
+	for(ii = 0; ii < nIter; ii += 1)
+		for(i = 0; i < nTargets; i += 1)
+			theTarget = StringFromList(i,targets)
+			catList = ListMatch(wList, "*rot_" + theTarget + "_*")
+			if(cmpstr(theTarget,"5") == 0)
+				Wave allRowsW = GiveMeTheValidWaveIndex(catList)
+			else
+				Make/O/N=(ItemsInList(catList))/FREE allRowsW = p
+			endif
+			StatsSample/N=(nSample)/Q allRowsW
+			WAVE/Z W_Sampled
+			Make/O/N=(nSample)/T/FREE allRotW = StringFromList(W_Sampled[p],catList)
+			// reassign catList to the sampled imgs
+			wfprintf catList, "%s;", allRotW
+			wName = "all_ave_" + theTarget
+			Concatenate/O catList, $wName
+			Wave w0 = $wName
+			ImageTransform averageRGBimages w0
+			WAVE/Z M_AverageRGBIMage
+			KillWaves/Z w0
+			Duplicate/O M_AverageRGBImage, $wName
+			Wave w0 = $wName
+			plotName = ReplaceString("all_ave_",wName,"p_ave_")
+			KillWindow/Z $plotName
+			NewImage/N=$plotName/HIDE=1/S=0 M_AverageRGBIMage
+			ModifyGraph/W=$plotName width={Plan,1,top,left}
+			RGB2Montage(w0,4)
+		endfor
+		MakeTheLayouts("p_mtg",6,1,iter = ii)
+		KillTheLayout("p_mtg",0)
+	endfor
+End
+
+STATIC Function/WAVE GiveMeTheValidWaveIndex(catList)
+	String catList
+	Variable nImages = ItemsInList(catList)
+	Variable i
+	
+	String imgName, ontName // although it says Name, these are the full address
+	String expr = "root\\Wdata\\Wdataset\\w([[:digit:]]+)\\Wclp\\wrot\\w([[:digit:]]+)\\w([[:digit:]]+)"
+	String datasetNo,matNo,rowNo
+	Make/O/N=(nImages)/FREE distW, indexW=p
+	
+	for(i = 0; i < nImages; i += 1)
+		imgName = StringFromList(i,catList)
+		SplitString/E=(expr) imgName, datasetNo, matNo, rowNo
+		ontName = "root:data:dataset_" + datasetNo + ":ont_" + matNo
+		Wave ontW = $ontName
+		distW[i] = ontW[str2num(rowNo)][0]
+	endfor
+	/// now we have a wave with all the distances in it in order with catList
+	Sort/R distW, distW, indexW
+	Make/O/N=(floor(nImages / 2)) root:furthest5W/WAVE=indexWave
+	indexWave[] = indexW[p] 
+	return indexWave
 End
 
 ////////////////////////////////////////////////////////////////////////
@@ -1559,22 +1702,32 @@ STATIC Function CleanSlate()
 End
 
 // Use this to kill layouts and contents made with MakeTheLayouts
-STATIC Function KillTheLayout(prefix)
+STATIC Function KillTheLayout(prefix,killWavesToo)
 	String prefix
+	Variable killWavesToo // 0 means no, 1 (or anything else) means yes)
 	String layoutName = "all"+prefix+"Layout"
 	DoWindow/K $layoutName
 	
 	SetDataFolder root:
 	String fullList = WinList(prefix + "_*", ";","WIN:1")
 	Variable allItems = ItemsInList(fullList)
-	String name
+	String windowName, imgName, imgWaveName
 	Variable i
- 
-	for(i = 0; i < allItems; i += 1)
-		name = StringFromList(i, fullList)
-		KillWindow/Z $name		
-	endfor
-	
+ 	
+ 	if(killWavesToo == 0)
+ 		for(i = 0; i < allItems; i += 1)
+			windowName = StringFromList(i, fullList)
+			KillWindow/Z $windowName	
+		endfor
+ 	else
+		for(i = 0; i < allItems; i += 1)
+			windowName = StringFromList(i, fullList)
+			imgName = StringFromList(0, ImageNameList(windowName,";"))
+			Wave imgWave = ImageNameToWaveRef(windowName,imgName)
+			KillWindow/Z $windowName	
+			KillWaves/Z imgWave
+		endfor
+	endif
 End
 
 STATIC Function MakeCube(m0)
@@ -1750,7 +1903,7 @@ Function StartingPanelForIC()
 	Make/T/O/N=5 ObjWave={"Aligned","Poles","Background","Misaligned","Ensheathed"}
 	Make/T/O/N=4 ChWave={"DNA","Tubulin","ER","CENP-C"}
 	// make global numeric wave for other variables
-	Make/O/N=8 gVarWave={4,41,0.06449999660253525,0.06449999660253525,0.20000000298023224,2,1,3}
+	Make/O/N=8 gVarWave={4,61,0.06449999660253525,0.06449999660253525,0.20000000298023224,2,1,3}
 	// note that this panel will not deal with less/more than 4 channels and 5 objects
 	DoWindow/K SetUp
 	NewPanel/N=SetUp/K=1/W=(81,73,774,298)
