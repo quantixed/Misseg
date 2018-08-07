@@ -5,7 +5,6 @@
 // Menu items
 ////////////////////////////////////////////////////////////////////////
 Menu "Macros"
-	"Misseg One File...", /Q, WorkflowForXMLAnalysis()
 	"Misseg Directory...", /Q, WorkflowForXMLAnalysisDir()
 	"Image Analysis Directory...", /Q, WorkflowForImageAnalysisDir()
 	"Image Clipping...", /Q, WorkflowForImageClipping()
@@ -14,28 +13,10 @@ End
 ////////////////////////////////////////////////////////////////////////
 // Master functions and wrappers
 ////////////////////////////////////////////////////////////////////////
-Function WorkflowForXMLAnalysis()
-	CleanSlate()
-	ReadXML("","")
-	DealWithDuplicates()
-	ScaleAllWaves(1,4)
-	RotateAndSitUp()
-	DistanceCalculations()
-	MakeWavesForGraphAndPlot(0)
-	MakeTheLayouts("dist",5,3)
-	MakeTheLayouts("spher",5,3)
-End
 
 Function WorkflowForXMLAnalysisDir()
 	CleanSlate()
-	Variable okvar = WorkOnDirectory()
-	if(okvar < 0)
-		return -1
-	endif
-	CollectAllMeasurements()
-	MakeTheLayouts("dist",5,3)
-	MakeTheLayouts("spher",5,3)
-	MakeTheGizmos()
+	StartingPanelforXML()
 End
 
 Function WorkflowForImageAnalysisDir()
@@ -46,6 +27,16 @@ End
 Function WorkflowForImageClipping()
 	CleanSlate()
 	StartingPanelForIC()
+End
+
+// After clicking do it on the panel we come here
+STATIC Function XMLWrapperFunc()
+	KillWindow/Z SetUp
+	WorkOnDirectory()
+	CollectAllMeasurements()
+	MakeTheLayouts("dist",5,3)
+	MakeTheLayouts("spher",5,3)
+	MakeTheGizmos()
 End
 
 // After clicking do it on the panel we come here
@@ -67,7 +58,7 @@ STATIC Function ICWrapperFunc()
 	MakeTheLayouts("p_rgb",floor((gVarWave[1]/2) * 1.5),ceil(gVarWave[1]/2),filtVar = 2)
 	MakeTheLayouts("p_rgb",floor((gVarWave[1]/2) * 1.5),ceil(gVarWave[1]/2),filtVar = 4)
 	MakeTheLayouts("p_rgb",floor((gVarWave[1]/2) * 1.5),ceil(gVarWave[1]/2),filtVar = 5)
-	CollateImagesToAverageByDistance(20,5)
+	CollateImagesToAverageByDistance(20,10)
 	MakeTheLayouts("p_rot",floor((gVarWave[1]/2) * 1.5),ceil(gVarWave[1]/2),filtVar = 1)
 	MakeTheLayouts("p_rot",floor((gVarWave[1]/2) * 1.5),ceil(gVarWave[1]/2),filtVar = 2)
 	MakeTheLayouts("p_rot",floor((gVarWave[1]/2) * 1.5),ceil(gVarWave[1]/2),filtVar = 4)
@@ -223,7 +214,7 @@ STATIC Function ScaleAllWaves(correctVar,nCh)
 	String mName
 	Wave/Z ScalingW = root:ScalingW
 	if(!WaveExists(ScalingW))
-		DoAlert/T="Problem" 0, "No scaling wave"
+		Print "No scaling wave available."
 		return -1
 	endif
 	
@@ -1130,16 +1121,19 @@ End
 
 // Work on many files from a directory
 Function WorkOnDirectory()
+	Wave gVarWave = root:gVarWave
+	Wave/T pathWave = root:pathWave
+	Variable nCh = gVarWave[0]
+	Make/O/N=3 ScalingW = {gVarWave[2],gVarWave[3],gVarWave[4]}
+	MatrixTranspose ScalingW
+	
 	NewDataFolder/O/S root:data
 	String expDiskFolderName, expDataFolderName
 	String FileList, ThisFile
-	Variable nWaves, i
-	
-	NewPath/O/Q/M="Please find disk folder" ExpDiskFolder
-	if (V_flag!=0)
-		DoAlert 0, "Disk folder error"
-		Return -1
-	endif
+	Variable i
+	// XML Dir now pre-selected
+	String pathToFolder = pathWave[0]
+	NewPath/O/Q ExpDiskFolder, pathToFolder
 	PathInfo /S ExpDiskFolder
 	ExpDiskFolderName = S_path
 	FileList = IndexedFile(expDiskFolder,-1,".xml")
@@ -1154,7 +1148,7 @@ Function WorkOnDirectory()
 		NewDataFolder/O/S $expDataFolderName
 		ReadXML(ExpDiskFolderName,ThisFile)
 		DealWithDuplicates()
-		ScaleAllWaves(1,4)
+		ScaleAllWaves(1,nCh)
 		RotateAndSitUp()
 		DistanceCalculations()
 		MakeWavesForGraphAndPlot(i)
@@ -1446,7 +1440,7 @@ STATIC Function MakeTheLayouts(prefix,nRow,nCol,[iter, filtVar])
 	// specific to this ipf
 	WAVE/Z/T PathWave
 	NewPath/C/O/Q/Z outputFolder PathWave[1]
-	SavePICT/O/P=outputFolder/PGR=(1,-1)/E=-2/W=(0,0,0,0) as fileName
+	SavePICT/O/WIN=$layoutName/P=outputFolder/PGR=(1,-1)/E=-2/W=(0,0,0,0) as fileName
 End
 
 Function MakeTheGizmos()
@@ -1474,6 +1468,7 @@ Function MakeTheGizmos()
 	String gizList = "dataset;octant;cube;",gizName
 	Variable nGiz = ItemsInList(gizList), bigNum
 	String modList = wList + ReplaceString("all_rn_",wList,"all_rnOct_") + ReplaceString("all_rn_",wList,"all_rnCube_")
+	String pictName
 	
 	for(i = 0; i < nGiz; i += 1)
 		gizName = StringFromList(i,gizList)
@@ -1508,6 +1503,8 @@ Function MakeTheGizmos()
 		endif
 		ModifyGizmo/N=$gizName scalingOption=0
 		ModifyGizmo/N=$gizName setQuaternion={0.5,0.5,0.5,0.5}
+		pictName = gizName + ".png"
+		SavePICT/O/P=TiffPath/E=-5/B=300 as pictName
 	endfor
 End
 
@@ -1810,6 +1807,94 @@ End
 // Panel functions
 ////////////////////////////////////////////////////////////////////////
 
+Function StartingPanelForXML()
+	// make global text wave to store paths, object and channel info
+	Make/T/O/N=2 PathWave
+	Make/T/O/N=5 ObjWave={"Aligned","Poles","Background","Misaligned","Ensheathed"}
+	Make/T/O/N=4 ChWave={"DNA","Tubulin","ER","CENP-C"}
+	// make global numeric wave for other variables
+	Make/O/N=8 gVarWave={4,8,0.06449999660253525,0.06449999660253525,0.20000000298023224}
+	// note that this panel will not deal with less/more than 4 channels and 5 objects
+	DoWindow/K SetUp
+	NewPanel/N=SetUp/K=1/W=(81,73,774,298)
+	SetDrawLayer UserBack
+	SetDrawEnv linefgc= (65535,65535,65535),fillfgc= (49151,53155,65535)
+	DrawRect 9,116,176,218
+	Button SelectDir1,pos={12.00,10.00},size={140.00,20.00},proc=ButtonProcXML,title="Select XML Dir"
+	Button SelectDir2,pos={12.00,41.00},size={140.00,20.00},proc=ButtonProcXML,title="Select Output Dir"
+	SetVariable Dir1,pos={188.00,13.00},size={480.00,14.00},value= PathWave[0],title="XML Directory"
+	SetVariable Dir2,pos={188.00,44.00},size={480.00,14.00},value= PathWave[1],title="Output Directory"
+	SetVariable Obj0,pos={214.00,80.00},size={194.00,14.00},value= ObjWave[0],title="Object 1"
+	SetVariable Obj1,pos={214.00,110.00},size={194.00,14.00},value= ObjWave[1],title="Object 2"
+	SetVariable Obj2,pos={214.00,140.00},size={194.00,14.00},value= ObjWave[2],title="Object 3"
+	SetVariable Obj3,pos={214.00,170.00},size={194.00,14.00},value= ObjWave[3],title="Object 4"
+	SetVariable Obj4,pos={214.00,200.00},size={194.00,14.00},value= ObjWave[4],title="Object 5"
+	
+	SetVariable ChSetVar,pos={12.00,70.00},size={166.00,14.00},title="How many channels?"
+	SetVariable ChSetVar,format="%g",value= gVarWave[0]
+//	SetVariable RrSetVar,pos={12.00,90.00},size={166.00,14.00},title="Analysis radius (px)"
+//	SetVariable RrSetVar,format="%g",value= gVarWave[1]
+	SetVariable xVar,pos={27.00,135.00},size={126.00,14.00},title="x size (nm)"
+	SetVariable xVar,format="%g",value= gVarWave[2]
+	SetVariable yVar,pos={27.00,160.00},size={126.00,14.00},title="y size (nm)"
+	SetVariable yVar,format="%g",value= gVarWave[3]
+	SetVariable zVar,pos={27.00,185.00},size={126.00,14.00},title="z size (nm)"
+	SetVariable zVar,format="%g",value= gVarWave[4]
+
+	SetVariable Ch0,pos={468.00,80.00},size={194.00,14.00},value= ChWave[0],title="Channel 1"
+	SetVariable Ch1,pos={468.00,110.00},size={194.00,14.00},value= ChWave[1],title="Channel 2"
+	SetVariable Ch2,pos={468.00,140.00},size={194.00,14.00},value= ChWave[2],title="Channel 3"
+	SetVariable Ch3,pos={468.00,170.00},size={194.00,14.00},value= ChWave[3],title="Channel 4"
+	Button DoIt,pos={564.00,194.00},size={100.00,20.00},proc=ButtonProcXML,title="Do It"
+End
+ 
+// define buttons
+Function ButtonProcXML(ctrlName) : ButtonControl
+	String ctrlName
+ 
+		Wave/T PathWave, ObjWave, ChWave
+		Wave gVarWave
+		Variable refnum,okVar
+ 
+		strswitch(ctrlName)
+ 
+			case "SelectDir1"	:
+				// set XML directory
+				NewPath/Q/O/M="Locate folder with XML files" XMLPath
+				PathInfo XMLPath
+				PathWave[0] = S_Path
+				PathWave[1] = S_Path
+				break
+ 
+			case "SelectDir2"	:
+				// set TIFF directory
+				NewPath/Q/O/M="Locate output folder with images" TiffPath
+				PathInfo TiffPath
+				PathWave[1] = S_Path
+				break
+ 
+			case "DoIt" :
+				// check CondWave
+				okvar = WaveChecker(PathWave)
+				if (okvar == -1)
+					Print "Error: Not all directories are selected."
+					break
+				endif
+				okvar = NameChecker(objWave)
+				if (okvar == -1)
+					Print "Error: Two objects have the same name."
+					break
+				endif
+				okvar = NameChecker(ChWave)
+				if (okvar == -1)
+					Print "Error: Two channels have the same name."
+					break
+				else
+					XMLWrapperFunc()
+				endif
+		EndSwitch
+End
+
 Function StartingPanelForIA()
 	// make global text wave to store paths, object and channel info
 	Make/T/O/N=2 PathWave
@@ -1823,8 +1908,8 @@ Function StartingPanelForIA()
 	SetDrawLayer UserBack
 	SetDrawEnv linefgc= (65535,65535,65535),fillfgc= (49151,53155,65535)
 	DrawRect 9,116,176,218
-	Button SelectDir1,pos={12.00,10.00},size={140.00,20.00},proc=ButtonProc,title="Select XML Dir"
-	Button SelectDir2,pos={12.00,41.00},size={140.00,20.00},proc=ButtonProc,title="Select TIFF Dir"
+	Button SelectDir1,pos={12.00,10.00},size={140.00,20.00},proc=ButtonProcIA,title="Select XML Dir"
+	Button SelectDir2,pos={12.00,41.00},size={140.00,20.00},proc=ButtonProcIA,title="Select TIFF Dir"
 	SetVariable Dir1,pos={188.00,13.00},size={480.00,14.00},value= PathWave[0],title="XML Directory"
 	SetVariable Dir2,pos={188.00,44.00},size={480.00,14.00},value= PathWave[1],title="TIFF Directory"
 	SetVariable Obj0,pos={214.00,80.00},size={194.00,14.00},value= ObjWave[0],title="Object 1"
@@ -1848,11 +1933,11 @@ Function StartingPanelForIA()
 	SetVariable Ch1,pos={468.00,110.00},size={194.00,14.00},value= ChWave[1],title="Channel 2"
 	SetVariable Ch2,pos={468.00,140.00},size={194.00,14.00},value= ChWave[2],title="Channel 3"
 	SetVariable Ch3,pos={468.00,170.00},size={194.00,14.00},value= ChWave[3],title="Channel 4"
-	Button DoIt,pos={564.00,194.00},size={100.00,20.00},proc=ButtonProc,title="Do It"
+	Button DoIt,pos={564.00,194.00},size={100.00,20.00},proc=ButtonProcIA,title="Do It"
 End
  
 // define buttons
-Function ButtonProc(ctrlName) : ButtonControl
+Function ButtonProcIA(ctrlName) : ButtonControl
 	String ctrlName
  
 		Wave/T PathWave, ObjWave, ChWave
