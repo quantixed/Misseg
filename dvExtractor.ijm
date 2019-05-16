@@ -173,3 +173,104 @@ macro "Save dv As MultiChannel Tiff" {
 	}
 	setBatchMode(false);
 }
+
+macro "Save A Segmented Channel From a dv" {
+	if (nImages > 0) exit ("Please close any images and try again.");
+	// make dialog to get choices
+	Dialog.create("dv2 to TIFF conversion");
+	Dialog.addMessage("Single channel export:");
+	Dialog.addCheckbox("Channel 1", false);
+	Dialog.addCheckbox("Channel 2", false);
+	Dialog.addCheckbox("Channel 3", false);
+	Dialog.addCheckbox("Channel 4", false);
+	Dialog.show();
+	doCh1 = Dialog.getCheckbox();
+	doCh2 = Dialog.getCheckbox();
+	doCh3 = Dialog.getCheckbox();
+	doCh4 = Dialog.getCheckbox();
+	// choices taken, now find locations
+	dir1 = getDirectory("Choose Source Directory ");
+	dir2 = getDirectory("Choose Destination Directory ");
+	list = getFileList(dir1);
+
+	dvnum = 0;
+	// How many d3d.dv files do we have? Directory could contain other directories.
+	for (i=0; i<list.length; i++) {
+		if (indexOf(toLowerCase(list[i]), "d3d.dv")>0) {
+			dvnum=dvnum+1;
+		}
+	}
+	tifflist = newArray(dvnum);
+	dvlist = newArray(dvnum);
+	j = 0;
+	for (i=0; i<list.length; i++) {
+		if (indexOf(toLowerCase(list[i]), "d3d.dv")>0) {
+			dvlist[j]=list[i];
+			tifflist[j]=replace(list[i],".dv",".tif");
+			j=j+1;
+		}
+	}
+	// set up folders in destination
+	if(doCh1 == true) File.makeDirectory(dir2+"ch1"+File.separator);
+	if(doCh2 == true) File.makeDirectory(dir2+"ch2"+File.separator);
+	if(doCh3 == true) File.makeDirectory(dir2+"ch3"+File.separator);
+	if(doCh4 == true) File.makeDirectory(dir2+"ch4"+File.separator);
+	setBatchMode(true);
+	for (i=0; i<dvlist.length; i++) {
+		showProgress(i+1, list.length);
+		s = "open=["+dir1+dvlist[i]+"] autoscale color_mode=Grayscale rois_import=[ROI manager] view=Hyperstack stack_order=XYCZT";
+		run("Bio-Formats Importer", s);
+		id0 = getImageID();
+		if(doCh1 == true)	{
+			specificDir = dir2+"ch1"+File.separator;
+			run("Duplicate...", "duplicate channels=1");
+			id1 = getImageID();
+			selectImage(id1);
+			run("Gaussian Blur...", "sigma=2 stack");
+			setAutoThreshold("Otsu dark");
+			run("Convert to Mask", "method=Otsu background=Default calculate");
+			saveAs("tiff", specificDir+tifflist[i]);
+			close();
+			selectImage(id0);
+		}
+		if(doCh2 == true)	{
+			specificDir = dir2+"ch2"+File.separator;
+			run("Duplicate...", "duplicate channels=2");
+			id1 = getImageID();
+			selectImage(id1);
+			run("Gaussian Blur...", "sigma=2 stack");
+			setAutoThreshold("Otsu dark");
+			run("Convert to Mask", "method=Otsu background=Default calculate");
+			saveAs("tiff", specificDir+tifflist[i]);
+			close();
+			selectImage(id0);
+		}
+		if(doCh3 == true)	{
+			specificDir = dir2+"ch3"+File.separator;
+			run("Duplicate...", "duplicate channels=3");
+			id1 = getImageID();
+			selectImage(id1);
+			run("Gaussian Blur...", "sigma=2 stack");
+			setAutoThreshold("Otsu dark");
+			run("Convert to Mask", "method=Otsu background=Default calculate");
+			saveAs("tiff", specificDir+tifflist[i]);
+			close();
+			selectImage(id0);
+		}
+		if(doCh4 == true)	{
+			specificDir = dir2+"ch4"+File.separator;
+			run("Duplicate...", "duplicate channels=4");
+			id1 = getImageID();
+			selectImage(id1);
+			run("Gaussian Blur...", "sigma=2 stack");
+			setAutoThreshold("Otsu dark");
+			run("Convert to Mask", "method=Otsu background=Default calculate");
+			saveAs("tiff", specificDir+tifflist[i]);
+			close();
+			selectImage(id0);
+		}
+		selectImage(id0);
+		close();
+	}
+	setBatchMode(false);
+}
