@@ -226,9 +226,7 @@ macro "Save A Segmented Channel From a dv" {
 			run("Duplicate...", "duplicate channels=1");
 			id1 = getImageID();
 			selectImage(id1);
-			run("Gaussian Blur...", "sigma=2 stack");
-			setAutoThreshold("Otsu dark");
-			run("Convert to Mask", "method=Otsu background=Default calculate");
+			doTheSegmentation();
 			saveAs("tiff", specificDir+tifflist[i]);
 			close();
 			selectImage(id0);
@@ -238,9 +236,7 @@ macro "Save A Segmented Channel From a dv" {
 			run("Duplicate...", "duplicate channels=2");
 			id1 = getImageID();
 			selectImage(id1);
-			run("Gaussian Blur...", "sigma=2 stack");
-			setAutoThreshold("Otsu dark");
-			run("Convert to Mask", "method=Otsu background=Default calculate");
+			doTheSegmentation();
 			saveAs("tiff", specificDir+tifflist[i]);
 			close();
 			selectImage(id0);
@@ -250,9 +246,7 @@ macro "Save A Segmented Channel From a dv" {
 			run("Duplicate...", "duplicate channels=3");
 			id1 = getImageID();
 			selectImage(id1);
-			run("Gaussian Blur...", "sigma=2 stack");
-			setAutoThreshold("Otsu dark");
-			run("Convert to Mask", "method=Otsu background=Default calculate");
+			doTheSegmentation();
 			saveAs("tiff", specificDir+tifflist[i]);
 			close();
 			selectImage(id0);
@@ -262,14 +256,58 @@ macro "Save A Segmented Channel From a dv" {
 			run("Duplicate...", "duplicate channels=4");
 			id1 = getImageID();
 			selectImage(id1);
-			run("Gaussian Blur...", "sigma=2 stack");
-			setAutoThreshold("Otsu dark");
-			run("Convert to Mask", "method=Otsu background=Default calculate");
+			doTheSegmentation();
 			saveAs("tiff", specificDir+tifflist[i]);
 			close();
 			selectImage(id0);
 		}
 		selectImage(id0);
+		close();
+	}
+	setBatchMode(false);
+}
+
+function doTheSegmentation() {
+	// previous method
+//	run("Gaussian Blur...", "sigma=2 stack");
+//	setAutoThreshold("Otsu dark");
+//	run("Convert to Mask", "method=Otsu background=Default calculate");
+	// new method
+	run("Gamma...", "value=3 stack");
+//	run("Gaussian Blur...", "sigma=2 stack");
+	run("Convert to Mask", "method=MaxEntropy background=Dark calculate");
+}
+
+macro "Get Measurements From All dv Files" {
+	if (nImages > 0) exit ("Please close any images and try again.");
+	// choices taken, now find locations
+	dir1 = getDirectory("Choose Source Directory ");
+	list = getFileList(dir1);
+
+	dvnum = 0;
+	// How many d3d.dv files do we have? Directory could contain other directories.
+	for (i=0; i<list.length; i++) {
+		if (indexOf(toLowerCase(list[i]), "d3d.dv")>0) {
+			dvnum=dvnum+1;
+		}
+	}
+	tifflist = newArray(dvnum);
+	dvlist = newArray(dvnum);
+	j = 0;
+	for (i=0; i<list.length; i++) {
+		if (indexOf(toLowerCase(list[i]), "d3d.dv")>0) {
+			dvlist[j]=list[i];
+			j=j+1;
+		}
+	}
+	setBatchMode(true);
+	for (i=0; i<dvlist.length; i++) {
+		showProgress(i+1, list.length);
+		s = "open=["+dir1+dvlist[i]+"] autoscale color_mode=Grayscale rois_import=[ROI manager] view=Hyperstack stack_order=XYCZT";
+		run("Bio-Formats Importer", s);
+		id0 = getImageID();
+		makeLine(0, 1, 0, 0);
+		run("Measure");
 		close();
 	}
 	setBatchMode(false);

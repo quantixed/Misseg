@@ -1376,7 +1376,7 @@ Function WorkOnDirectoryER()
 		// 1. plot the rotated coord set coloured according to disance from the ER threshold
 		// 2. plot the rotated coord set normalised to the threshold
 		ScaleAllWaves(2,nCh) // this will scale without correcting Z
-		RotateAndSitUp(0)
+		RotateAndSitUp(1)
 		DistanceCalculations()
 		MakeIndividualGizmo()
 		TidyUp()
