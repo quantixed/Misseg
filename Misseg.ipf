@@ -2039,9 +2039,11 @@ STATIC Function InterpolateAndFindThreshold(m0,imgMat)
 	for(i = 0; i < nObjects; i += 1)
 		MatrixOP/O/FREE tempMat = m2[][][i] // take the correct coords for the object
 		Wave w0 = CallInterp3d(ImgMat, tempMat)	// could not get Interp3DPath to work
-		FindLevel/Q/P w0, 128
+//		FindLevel/Q/P w0, 128
+		Findlevel/B=2/EDGE=1/Q/P w0,255
 		if(V_Flag == 1)
 			Print mName, num2str(i), "threshold not found"
+			threshCoordsMat[i][] = NaN
 		elseif(numtype(V_levelX) == 2)
 			threshCoordsMat[i][] = NaN
 		else
@@ -2095,7 +2097,7 @@ Function StartingPanelForXML()
 	// make global text wave to store paths, object and channel info
 	Make/T/O/N=2 PathWave
 	Make/T/O/N=5 ObjWave={"Aligned","Poles","Background","Misaligned","Ensheathed"}
-	Make/T/O/N=4 ChWave={"DNA","Tubulin","ER","CENP-C"}
+	Make/T/O/N=4 ChWave={"DNA","ER","Tubulin","CENP-C"}
 	// make global numeric wave for other variables
 	Make/O/N=8 gVarWave={4,8,0.06449999660253525,0.06449999660253525,0.20000000298023224}
 	// note that this panel will not deal with less/more than 4 channels and 5 objects
