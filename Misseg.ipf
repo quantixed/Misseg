@@ -1,14 +1,32 @@
 #pragma TextEncoding = "UTF-8"
 #pragma rtGlobals=3		// Use modern global access method and strict wave access.
+#include <Math Utility Functions>
+
+//Notes on Misseg:
+//This ipf grew out of XML Analysis.
+//1. The original aim was to analyse and plot the spatial distribution of pointsets
+//   The pointsets were described in XML files using CellCounter in Fiji.
+//   They correspond to the position of kinetochores in hyperstacks.
+//   The pointsets are brought into Igor and then displayed.
+//   The points are classified in groups in CellCounter.
+//   This base workflow is WorkflowForXMLAnalysisDir()
+//2. The next iteration was to read the intensity of each channel in a sphere and analyse that:
+//   This workflow is called WorkflowForImageAnalysisDir()
+//3. After this we added the ability to clip images centred on each point and do all kinds of stuff
+//   For eample rotating and averaging. 2 & 3 are not currently used but are kept in this ipf.
+//4. A version of Misseg where the exclusion zone is used to rescale all the coordinates
+//   So that their position reflects their depth into the ER that surrounds the spindle.
+//   This version requires segmented images to be fed in.
+
 
 ////////////////////////////////////////////////////////////////////////
 // Menu items
 ////////////////////////////////////////////////////////////////////////
 Menu "Macros"
-	"Misseg Directory...", /Q, WorkflowForXMLAnalysisDir()
-	"Image Analysis Directory...", /Q, WorkflowForImageAnalysisDir()
-	"Image Clipping...", /Q, WorkflowForImageClipping()
-	"Misseg Directory With ER...", /Q, WorkflowForXMLAnalysisWithER()
+	"Misseg (Spatial)...", /Q, WorkflowForXMLAnalysisDir()
+	"Misseg (Exclusion Zone)...", /Q, WorkflowForXMLAnalysisWithER()
+	"Image Analysis (Spatial)...", /Q, WorkflowForImageAnalysisDir()
+	"Image Clipping Extension...", /Q, WorkflowForImageClipping()
 End
 
 ////////////////////////////////////////////////////////////////////////
@@ -73,12 +91,13 @@ STATIC Function ICWrapperFunc()
 	KillTheLayout("p_rot",1)
 End
 
-// After clicking Do It on the panel we come here
-STATIC Function ERWrapperFunc()
+// After clicking Do It (or Hybrid) on the panel we come here
+STATIC Function ERWrapperFunc(VARIABLE optVar)
 	KillWindow/Z SetUp
-	WorkOnDirectoryER()
+	WorkOnDirectoryER(optVar)
 	CollectAllMeasurements()
 	MakeTheGizmos()
+	PlotRatios()
 End
 
 ////////////////////////////////////////////////////////////////////////
@@ -328,6 +347,13 @@ Function RotateAndSitUp(CorrectVar)
 		return -1
 	endif
 	WAVE/Z cWave, scalingW = root:scalingW
+	// at this point we will have a cWave if FindCentre has been done (Exclusion Zone workflow)
+	// that cWave (if it exists) will need scaling.
+	// if it doesn't exist we need to make it, based on the standard method
+	// if we are using the hybrid approach we need to deal with that scenario
+	if(CorrectVar == 0)
+		KillWaves/Z cWave
+	endif
 	if(!WaveExists(cWave))
 		// find spindle midpoint, c. Store in cWave
 		Make/O/N=(1,3) cWave
@@ -1342,7 +1368,7 @@ Function WorkOnDirectoryIC()
 End
 
 // Work on many files from a directory
-Function WorkOnDirectoryER()
+Function WorkOnDirectoryER(VARIABLE OptVar)
 	Wave gVarWave = root:gVarWave
 	Wave/T pathWave = root:pathWave
 	// not using row 1 of gVarWave
@@ -1380,14 +1406,9 @@ Function WorkOnDirectoryER()
 		WAVE/Z/T fNameWave
 		ImageFileName = fNameWave[0]
 		ScaleAllWaves(1,nCh) // this doesn't scale but it corrects Z
-		if(LoadThresholdedImage(ImageDiskFolderName,ImageFileName) != -1)
-			//MakeIntWavesForGraphAndPlot(i)
-		endif
-		// goal here is to:
-		// 1. plot the rotated coord set coloured according to distance from the ER threshold (not done yet)
-		// 2. plot the rotated coord set normalised to the threshold
+		LoadThresholdedImage(ImageDiskFolderName,ImageFileName)
 		ScaleAllWaves(2,nCh) // this will scale without correcting Z
-		RotateAndSitUp(1)
+		RotateAndSitUp(optVar) // 1 is scale to ER (excl zone) 0 is scale to Poles (hybrid)
 		DistanceCalculations()
 		MakeIndividualGizmo()
 		TidyUp()
@@ -1413,11 +1434,13 @@ STATIC Function CollectAllMeasurements()
 	// we need to concatenate these waves into root (p_all_*)
 	String targetWaveList = "dist_Mat_1;dist_Mat_2;dist_Mat_4;dist_Mat_5;"
 	targetWavelist += "rn_Mat_1;rn_Mat_2;rn_Mat_4;rn_Mat_5;"
+	// these ratio waves will be here if ER or hybrid is run
+	targetWavelist += "rat_1;rat_2;rat_4;rat_5;"
 	Variable nTargets = ItemsInList(targetWaveList)
 	String targetName, tList, conName
 	
 	SetDataFolder root:
-	String fullName,modtList
+	String fullName, modtList
 	
 	for(i = 0; i < nTargets; i += 1)
 		targetName = StringFromList(i,targetWaveList)
@@ -1523,6 +1546,50 @@ STATIC Function Graph2DWaves(nCh)
 		TextBox/W=$plotName/C/N=text0/F=0/X=0.00/Y=0.00 ChWave[i]
 	endfor
 End
+
+STATIC Function PlotRatios()
+	Variable Obj = 4
+	SetDataFolder root:
+	String wName, newName
+	Variable nRows
+	Wave/T objWave = root:objWave
+	Make/O/N=(Obj)/T xLabel={objWave[0],objWave[1],objWave[3],objWave[4]}
+	String ObjString = "1;2;4;5;"
+	String plotName = "ratioBoxPlot"
+	WAVE/Z colorWave = MakeColorWave()
+
+	Variable i
+	
+	for(i = 0; i < Obj; i += 1)
+		wName = "all_rat_" + StringFromList(i,ObjString)
+		Wave w0 = $wName
+		WaveTransform zapnans w0
+		w0[] = log2(w0[p])
+		nRows = Max(nRows,numpnts(w0))
+	endfor
+	
+	KillWindow/Z $plotName
+	Display/N=$plotName
+	
+	for(i = 0; i < Obj; i += 1)
+		wName = "all_rat_" + StringFromList(i,ObjString)
+		Wave w0 = $wName
+		newName = "all_bp_" + StringFromList(i,ObjString)
+		Make/O/N=(nRows,Obj) $newName = NaN
+		Wave m0 = $newName
+		m0[0,numpnts(w0) - 1][i] = w0[p]
+		AppendBoxPlot/W=$plotName m0 vs xLabel
+		ModifyBoxPlot/W=$plotName trace=$newName,markers={19,-1,19},markerSizes={3,3,3},markerThick={0,0,0}
+		ModifyBoxPlot/W=$plotName trace=$newName,whiskerMethod=4
+		ModifyGraph/W=$plotName rgb($newName)=(colorWave[i][0],colorWave[i][1],colorWave[i][2],colorWave[i][3])
+	endfor
+	
+	ModifyGraph/W=$plotName toMode=-1
+	Label/W=$plotName left "Ratio (Log\B2\M)"
+	SetAxis/A/N=1/W=$plotName left
+	ModifyGraph/W=$plotName zero(left)=4
+End
+
 
 STATIC Function MakeTheLayouts(prefix,nRow,nCol,[iter, filtVar])
 	String prefix
@@ -1899,7 +1966,7 @@ STATIC Function CleanSlate()
  
 	for(i = 0; i < allItems; i += 1)
 		name = StringFromList(i, fullList)
-		KillWindow/Z $name		
+		KillWindow/Z $name	
 	endfor
 	
 	// Kill waves in root
@@ -2117,32 +2184,32 @@ Function StartingPanelForXML()
 	SetDrawLayer UserBack
 	SetDrawEnv linefgc= (65535,65535,65535),fillfgc= (49151,53155,65535)
 	DrawRect 9,116,176,218
-	Button SelectDir1,pos={12.00,10.00},size={140.00,20.00},proc=ButtonProcXML,title="Select XML Dir"
-	Button SelectDir2,pos={12.00,41.00},size={140.00,20.00},proc=ButtonProcXML,title="Select Output Dir"
-	SetVariable Dir1,pos={188.00,13.00},size={480.00,14.00},value= PathWave[0],title="XML Directory"
-	SetVariable Dir2,pos={188.00,44.00},size={480.00,14.00},value= PathWave[1],title="Output Directory"
-	SetVariable Obj0,pos={214.00,80.00},size={194.00,14.00},value= ObjWave[0],title="Object 1"
-	SetVariable Obj1,pos={214.00,110.00},size={194.00,14.00},value= ObjWave[1],title="Object 2"
-	SetVariable Obj2,pos={214.00,140.00},size={194.00,14.00},value= ObjWave[2],title="Object 3"
-	SetVariable Obj3,pos={214.00,170.00},size={194.00,14.00},value= ObjWave[3],title="Object 4"
-	SetVariable Obj4,pos={214.00,200.00},size={194.00,14.00},value= ObjWave[4],title="Object 5"
+	Button SelectDir1,pos={12,10},size={140,20},proc=ButtonProcXML,title="Select XML Dir"
+	Button SelectDir2,pos={12,41},size={140,20},proc=ButtonProcXML,title="Select Output Dir"
+	SetVariable Dir1,pos={188,13},size={480,14},value= PathWave[0],title="XML Directory"
+	SetVariable Dir2,pos={188,44},size={480,14},value= PathWave[1],title="Output Directory"
+	SetVariable Obj0,pos={214,80},size={194,14},value= ObjWave[0],title="Object 1"
+	SetVariable Obj1,pos={214,110},size={194,14},value= ObjWave[1],title="Object 2"
+	SetVariable Obj2,pos={214,140},size={194,14},value= ObjWave[2],title="Object 3"
+	SetVariable Obj3,pos={214,170},size={194,14},value= ObjWave[3],title="Object 4"
+	SetVariable Obj4,pos={214,200},size={194,14},value= ObjWave[4],title="Object 5"
 	
-	SetVariable ChSetVar,pos={12.00,70.00},size={166.00,14.00},title="How many channels?"
+	SetVariable ChSetVar,pos={12,70},size={166,14},title="How many channels?"
 	SetVariable ChSetVar,format="%g",value= gVarWave[0]
-//	SetVariable RrSetVar,pos={12.00,90.00},size={166.00,14.00},title="Analysis radius (px)"
+//	SetVariable RrSetVar,pos={12,90},size={166,14},title="Analysis radius (px)"
 //	SetVariable RrSetVar,format="%g",value= gVarWave[1]
-	SetVariable xVar,pos={27.00,135.00},size={126.00,14.00},title="x size (nm)"
+	SetVariable xVar,pos={27,135},size={126,14},title="x size (nm)"
 	SetVariable xVar,format="%g",value= gVarWave[2]
-	SetVariable yVar,pos={27.00,160.00},size={126.00,14.00},title="y size (nm)"
+	SetVariable yVar,pos={27,160},size={126,14},title="y size (nm)"
 	SetVariable yVar,format="%g",value= gVarWave[3]
-	SetVariable zVar,pos={27.00,185.00},size={126.00,14.00},title="z size (nm)"
+	SetVariable zVar,pos={27,185},size={126,14},title="z size (nm)"
 	SetVariable zVar,format="%g",value= gVarWave[4]
 
-	SetVariable Ch0,pos={468.00,80.00},size={194.00,14.00},value= ChWave[0],title="Channel 1"
-	SetVariable Ch1,pos={468.00,110.00},size={194.00,14.00},value= ChWave[1],title="Channel 2"
-	SetVariable Ch2,pos={468.00,140.00},size={194.00,14.00},value= ChWave[2],title="Channel 3"
-	SetVariable Ch3,pos={468.00,170.00},size={194.00,14.00},value= ChWave[3],title="Channel 4"
-	Button DoIt,pos={564.00,194.00},size={100.00,20.00},proc=ButtonProcXML,title="Do It"
+	SetVariable Ch0,pos={468,80},size={194,14},value= ChWave[0],title="Channel 1"
+	SetVariable Ch1,pos={468,110},size={194,14},value= ChWave[1],title="Channel 2"
+	SetVariable Ch2,pos={468,140},size={194,14},value= ChWave[2],title="Channel 3"
+	SetVariable Ch3,pos={468,170},size={194,14},value= ChWave[3],title="Channel 4"
+	Button DoIt,pos={564,194},size={100,20},proc=ButtonProcXML,title="Do It"
 End
  
 // define buttons
@@ -2188,6 +2255,7 @@ Function ButtonProcXML(ctrlName) : ButtonControl
 					break
 				else
 					XMLWrapperFunc()
+					return -1
 				endif
 		EndSwitch
 End
@@ -2205,32 +2273,32 @@ Function StartingPanelForIA()
 	SetDrawLayer UserBack
 	SetDrawEnv linefgc= (65535,65535,65535),fillfgc= (49151,53155,65535)
 	DrawRect 9,116,176,218
-	Button SelectDir1,pos={12.00,10.00},size={140.00,20.00},proc=ButtonProcIA,title="Select XML Dir"
-	Button SelectDir2,pos={12.00,41.00},size={140.00,20.00},proc=ButtonProcIA,title="Select TIFF Dir"
-	SetVariable Dir1,pos={188.00,13.00},size={480.00,14.00},value= PathWave[0],title="XML Directory"
-	SetVariable Dir2,pos={188.00,44.00},size={480.00,14.00},value= PathWave[1],title="TIFF Directory"
-	SetVariable Obj0,pos={214.00,80.00},size={194.00,14.00},value= ObjWave[0],title="Object 1"
-	SetVariable Obj1,pos={214.00,110.00},size={194.00,14.00},value= ObjWave[1],title="Object 2"
-	SetVariable Obj2,pos={214.00,140.00},size={194.00,14.00},value= ObjWave[2],title="Object 3"
-	SetVariable Obj3,pos={214.00,170.00},size={194.00,14.00},value= ObjWave[3],title="Object 4"
-	SetVariable Obj4,pos={214.00,200.00},size={194.00,14.00},value= ObjWave[4],title="Object 5"
+	Button SelectDir1,pos={12,10},size={140,20},proc=ButtonProcIA,title="Select XML Dir"
+	Button SelectDir2,pos={12,41},size={140,20},proc=ButtonProcIA,title="Select TIFF Dir"
+	SetVariable Dir1,pos={188,13},size={480,14},value= PathWave[0],title="XML Directory"
+	SetVariable Dir2,pos={188,44},size={480,14},value= PathWave[1],title="TIFF Directory"
+	SetVariable Obj0,pos={214,80},size={194,14},value= ObjWave[0],title="Object 1"
+	SetVariable Obj1,pos={214,110},size={194,14},value= ObjWave[1],title="Object 2"
+	SetVariable Obj2,pos={214,140},size={194,14},value= ObjWave[2],title="Object 3"
+	SetVariable Obj3,pos={214,170},size={194,14},value= ObjWave[3],title="Object 4"
+	SetVariable Obj4,pos={214,200},size={194,14},value= ObjWave[4],title="Object 5"
 	
-	SetVariable ChSetVar,pos={12.00,70.00},size={166.00,14.00},title="How many channels?"
+	SetVariable ChSetVar,pos={12,70},size={166,14},title="How many channels?"
 	SetVariable ChSetVar,format="%g",value= gVarWave[0]
-	SetVariable RrSetVar,pos={12.00,90.00},size={166.00,14.00},title="Analysis radius (px)"
+	SetVariable RrSetVar,pos={12,90},size={166,14},title="Analysis radius (px)"
 	SetVariable RrSetVar,format="%g",value= gVarWave[1]
-	SetVariable xVar,pos={27.00,135.00},size={126.00,14.00},title="x size (nm)"
+	SetVariable xVar,pos={27,135},size={126,14},title="x size (nm)"
 	SetVariable xVar,format="%g",value= gVarWave[2]
-	SetVariable yVar,pos={27.00,160.00},size={126.00,14.00},title="y size (nm)"
+	SetVariable yVar,pos={27,160},size={126,14},title="y size (nm)"
 	SetVariable yVar,format="%g",value= gVarWave[3]
-	SetVariable zVar,pos={27.00,185.00},size={126.00,14.00},title="z size (nm)"
+	SetVariable zVar,pos={27,185},size={126,14},title="z size (nm)"
 	SetVariable zVar,format="%g",value= gVarWave[4]
 
-	SetVariable Ch0,pos={468.00,80.00},size={194.00,14.00},value= ChWave[0],title="Channel 1"
-	SetVariable Ch1,pos={468.00,110.00},size={194.00,14.00},value= ChWave[1],title="Channel 2"
-	SetVariable Ch2,pos={468.00,140.00},size={194.00,14.00},value= ChWave[2],title="Channel 3"
-	SetVariable Ch3,pos={468.00,170.00},size={194.00,14.00},value= ChWave[3],title="Channel 4"
-	Button DoIt,pos={564.00,194.00},size={100.00,20.00},proc=ButtonProcIA,title="Do It"
+	SetVariable Ch0,pos={468,80},size={194,14},value= ChWave[0],title="Channel 1"
+	SetVariable Ch1,pos={468,110},size={194,14},value= ChWave[1],title="Channel 2"
+	SetVariable Ch2,pos={468,140},size={194,14},value= ChWave[2],title="Channel 3"
+	SetVariable Ch3,pos={468,170},size={194,14},value= ChWave[3],title="Channel 4"
+	Button DoIt,pos={564,194},size={100,20},proc=ButtonProcIA,title="Do It"
 End
  
 // define buttons
@@ -2275,6 +2343,7 @@ Function ButtonProcIA(ctrlName) : ButtonControl
 					break
 				else
 					IAWrapperFunc()
+					return -1
 				endif
 		EndSwitch
 End
@@ -2297,47 +2366,47 @@ Function StartingPanelForIC()
 	DrawOval 527,110,542,125
 	SetDrawEnv fillfgc= (0,0,65535)
 	DrawOval 527,140,542,155
-	Button SelectDir1,pos={12.00,10.00},size={140.00,20.00},proc=ButtonProcIC,title="Select XML Dir"
-	Button SelectDir2,pos={12.00,41.00},size={140.00,20.00},proc=ButtonProcIC,title="Select TIFF Dir"
-	SetVariable Dir1,pos={188.00,13.00},size={480.00,14.00},title="XML Directory"
+	Button SelectDir1,pos={12,10},size={140,20},proc=ButtonProcIC,title="Select XML Dir"
+	Button SelectDir2,pos={12,41},size={140,20},proc=ButtonProcIC,title="Select TIFF Dir"
+	SetVariable Dir1,pos={188,13},size={480,14},title="XML Directory"
 	SetVariable Dir1,value= PathWave[0]
-	SetVariable Dir2,pos={188.00,44.00},size={480.00,14.00},title="TIFF Directory"
+	SetVariable Dir2,pos={188,44},size={480,14},title="TIFF Directory"
 	SetVariable Dir2,value= PathWave[1]
-	SetVariable Obj0,pos={214.00,80.00},size={132.00,14.00},title="Object 1"
+	SetVariable Obj0,pos={214,80},size={132,14},title="Object 1"
 	SetVariable Obj0,value= ObjWave[0]
-	SetVariable Obj1,pos={214.00,110.00},size={132.00,14.00},title="Object 2"
+	SetVariable Obj1,pos={214,110},size={132,14},title="Object 2"
 	SetVariable Obj1,value= ObjWave[1]
-	SetVariable Obj2,pos={214.00,140.00},size={132.00,14.00},title="Object 3"
+	SetVariable Obj2,pos={214,140},size={132,14},title="Object 3"
 	SetVariable Obj2,value= ObjWave[2]
-	SetVariable Obj3,pos={214.00,170.00},size={132.00,14.00},title="Object 4"
+	SetVariable Obj3,pos={214,170},size={132,14},title="Object 4"
 	SetVariable Obj3,value= ObjWave[3]
-	SetVariable Obj4,pos={214.00,200.00},size={132.00,14.00},title="Object 5"
+	SetVariable Obj4,pos={214,200},size={132,14},title="Object 5"
 	SetVariable Obj4,value= ObjWave[4]
-	SetVariable ChSetVar,pos={12.00,70.00},size={166.00,14.00},title="How many channels?"
+	SetVariable ChSetVar,pos={12,70},size={166,14},title="How many channels?"
 	SetVariable ChSetVar,format="%g",value= gVarWave[0]
-	SetVariable RrSetVar,pos={12.00,90.00},size={166.00,14.00},title="Clip size (px)"
+	SetVariable RrSetVar,pos={12,90},size={166,14},title="Clip size (px)"
 	SetVariable RrSetVar,format="%g",value= gVarWave[1]
-	SetVariable xVar,pos={27.00,135.00},size={126.00,14.00},title="x size (nm)"
+	SetVariable xVar,pos={27,135},size={126,14},title="x size (nm)"
 	SetVariable xVar,format="%g",value= gVarWave[2]
-	SetVariable yVar,pos={27.00,160.00},size={126.00,14.00},title="y size (nm)"
+	SetVariable yVar,pos={27,160},size={126,14},title="y size (nm)"
 	SetVariable yVar,format="%g",value= gVarWave[3]
-	SetVariable zVar,pos={27.00,185.00},size={126.00,14.00},title="z size (nm)"
+	SetVariable zVar,pos={27,185},size={126,14},title="z size (nm)"
 	SetVariable zVar,format="%g",value= gVarWave[4]
-	SetVariable Ch0,pos={371.00,80.00},size={139.00,14.00},title="Channel 1"
+	SetVariable Ch0,pos={371,80},size={139,14},title="Channel 1"
 	SetVariable Ch0,value= ChWave[0]
-	SetVariable Ch1,pos={371.00,110.00},size={139.00,14.00},title="Channel 2"
+	SetVariable Ch1,pos={371,110},size={139,14},title="Channel 2"
 	SetVariable Ch1,value= ChWave[1]
-	SetVariable Ch2,pos={371.00,140.00},size={139.00,14.00},title="Channel 3"
+	SetVariable Ch2,pos={371,140},size={139,14},title="Channel 3"
 	SetVariable Ch2,value= ChWave[2]
-	SetVariable Ch3,pos={371.00,170.00},size={139.00,14.00},title="Channel 4"
+	SetVariable Ch3,pos={371,170},size={139,14},title="Channel 4"
 	SetVariable Ch3,value= ChWave[3]
-	SetVariable rCh,pos={549.00,80.00},size={126.00,14.00},title="Red",format="%g"
+	SetVariable rCh,pos={549,80},size={126,14},title="Red",format="%g"
 	SetVariable rCh,value= gVarWave[5]
-	SetVariable gCh,pos={549.00,110.00},size={126.00,14.00},title="Green"
+	SetVariable gCh,pos={549,110},size={126,14},title="Green"
 	SetVariable gCh,format="%g",value= gVarWave[6]
-	SetVariable bCh,pos={549.00,140.00},size={126.00,14.00},title="Blue",format="%g"
+	SetVariable bCh,pos={549,140},size={126,14},title="Blue",format="%g"
 	SetVariable bCh,value= gVarWave[7]
-	Button DoIt,pos={564.00,194.00},size={100.00,20.00},proc=ButtonProcIC,title="Do It"
+	Button DoIt,pos={564,194},size={100,20},proc=ButtonProcIC,title="Do It"
 End
  
 // define buttons
@@ -2386,6 +2455,7 @@ Function ButtonProcIC(ctrlName) : ButtonControl
 						gVarWave[1] += 1
 					endif
 					ICWrapperFunc()
+					return -1
 				endif
 		EndSwitch
 End
@@ -2406,32 +2476,33 @@ Function StartingPanelForER()
 	SetDrawLayer UserBack
 	SetDrawEnv linefgc= (65535,65535,65535),fillfgc= (49151,53155,65535)
 	DrawRect 9,116,176,218
-	Button SelectDir1,pos={12.00,10.00},size={140.00,20.00},proc=ButtonProcIA,title="Select XML Dir"
-	Button SelectDir2,pos={12.00,41.00},size={140.00,20.00},proc=ButtonProcIA,title="Select TIFF Dir"
-	SetVariable Dir1,pos={188.00,13.00},size={480.00,14.00},value= PathWave[0],title="XML Directory"
-	SetVariable Dir2,pos={188.00,44.00},size={480.00,14.00},value= PathWave[1],title="TIFF Directory"
-	SetVariable Obj0,pos={214.00,80.00},size={194.00,14.00},value= ObjWave[0],title="Object 1"
-	SetVariable Obj1,pos={214.00,110.00},size={194.00,14.00},value= ObjWave[1],title="Object 2"
-	SetVariable Obj2,pos={214.00,140.00},size={194.00,14.00},value= ObjWave[2],title="Object 3"
-	SetVariable Obj3,pos={214.00,170.00},size={194.00,14.00},value= ObjWave[3],title="Object 4"
-	SetVariable Obj4,pos={214.00,200.00},size={194.00,14.00},value= ObjWave[4],title="Object 5"
+	Button SelectDir1,pos={12,10},size={140,20},proc=ButtonProcER,title="Select XML Dir"
+	Button SelectDir2,pos={12,41},size={140,20},proc=ButtonProcER,title="Select TIFF Dir"
+	SetVariable Dir1,pos={188,13},size={480,14},value= PathWave[0],title="XML Directory"
+	SetVariable Dir2,pos={188,44},size={480,14},value= PathWave[1],title="TIFF Directory"
+	SetVariable Obj0,pos={214,80},size={194,14},value= ObjWave[0],title="Object 1"
+	SetVariable Obj1,pos={214,110},size={194,14},value= ObjWave[1],title="Object 2"
+	SetVariable Obj2,pos={214,140},size={194,14},value= ObjWave[2],title="Object 3"
+	SetVariable Obj3,pos={214,170},size={194,14},value= ObjWave[3],title="Object 4"
+	SetVariable Obj4,pos={214,200},size={194,14},value= ObjWave[4],title="Object 5"
 	
-	SetVariable ChSetVar,pos={12.00,70.00},size={166.00,14.00},title="How many channels?"
+	SetVariable ChSetVar,pos={12,70},size={166,14},title="How many channels?"
 	SetVariable ChSetVar,format="%g",value= gVarWave[0]
-//	SetVariable RrSetVar,pos={12.00,90.00},size={166.00,14.00},title="Analysis radius (px)"
+//	SetVariable RrSetVar,pos={12,90},size={166,14},title="Analysis radius (px)"
 //	SetVariable RrSetVar,format="%g",value= gVarWave[1]
-	SetVariable xVar,pos={27.00,135.00},size={126.00,14.00},title="x size (nm)"
+	SetVariable xVar,pos={27,135},size={126,14},title="x size (nm)"
 	SetVariable xVar,format="%g",value= gVarWave[2]
-	SetVariable yVar,pos={27.00,160.00},size={126.00,14.00},title="y size (nm)"
+	SetVariable yVar,pos={27,160},size={126,14},title="y size (nm)"
 	SetVariable yVar,format="%g",value= gVarWave[3]
-	SetVariable zVar,pos={27.00,185.00},size={126.00,14.00},title="z size (nm)"
+	SetVariable zVar,pos={27,185},size={126,14},title="z size (nm)"
 	SetVariable zVar,format="%g",value= gVarWave[4]
 
-	SetVariable Ch0,pos={468.00,80.00},size={194.00,14.00},value= ChWave[0],title="Channel 1"
-	SetVariable Ch1,pos={468.00,110.00},size={194.00,14.00},value= ChWave[1],title="Channel 2"
-	SetVariable Ch2,pos={468.00,140.00},size={194.00,14.00},value= ChWave[2],title="Channel 3"
-	SetVariable Ch3,pos={468.00,170.00},size={194.00,14.00},value= ChWave[3],title="Channel 4"
-	Button DoIt,pos={564.00,194.00},size={100.00,20.00},proc=ButtonProcER,title="Do It"
+	SetVariable Ch0,pos={468,80},size={194,14},value= ChWave[0],title="Channel 1"
+	SetVariable Ch1,pos={468,110},size={194,14},value= ChWave[1],title="Channel 2"
+	SetVariable Ch2,pos={468,140},size={194,14},value= ChWave[2],title="Channel 3"
+	SetVariable Ch3,pos={468,170},size={194,14},value= ChWave[3],title="Channel 4"
+	Button Hybrid,pos={444,194},size={100,20},proc=ButtonProcER,title="Hybrid"
+	Button DoIt,pos={564,194},size={100,20},proc=ButtonProcER,title="Do It"
 End
  
 // define buttons
@@ -2457,7 +2528,28 @@ Function ButtonProcER(ctrlName) : ButtonControl
 				PathInfo TiffPath
 				PathWave[1] = S_Path
 				break
- 
+				
+			case "Hybrid" :
+				// check CondWave
+				okvar = WaveChecker(PathWave)
+				if (okvar == -1)
+					Print "Error: Not all directories are selected."
+					break
+				endif
+				okvar = NameChecker(objWave)
+				if (okvar == -1)
+					Print "Error: Two objects have the same name."
+					break
+				endif
+				okvar = NameChecker(ChWave)
+				if (okvar == -1)
+					Print "Error: Two channels have the same name."
+					break
+				else
+					ERWrapperFunc(0)
+					return -1
+				endif
+				
 			case "DoIt" :
 				// check CondWave
 				okvar = WaveChecker(PathWave)
@@ -2475,7 +2567,8 @@ Function ButtonProcER(ctrlName) : ButtonControl
 					Print "Error: Two channels have the same name."
 					break
 				else
-					ERWrapperFunc()
+					ERWrapperFunc(1)
+					return -1
 				endif
 		EndSwitch
 End
@@ -2544,4 +2637,13 @@ Function VizSphereMask()
 	ModifyGizmo ModifyObject=scatter0,objectType=scatter,property={ sizeWave,root:sizeWaveGiz}
 	ModifyGizmo ModifyObject=scatter0,objectType=scatter,property={ scatterColorType,1}
 	ModifyGizmo ModifyObject=scatter0,objectType=scatter,property={ colorWave,root:colorWaveGiz}
+End
+
+STATIC Function/WAVE MakeColorWave()
+	Make/O/N=(4,4) colorWave = 0
+	colorWave[][3] = 32768
+	colorWave[1][0] = 65535
+	colorWave[2][1] = 65535
+	colorWave[3][2] = 65535
+	return colorWave
 End
