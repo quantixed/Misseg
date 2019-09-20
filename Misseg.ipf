@@ -327,11 +327,17 @@ Function RotateAndSitUp(CorrectVar)
 		DoAlert/T="Problem" 0, "No Mat_2 wave"
 		return -1
 	endif
-	// find spindle midpoint, c. Store in cWave
-	Make/O/N=(1,3) cWave
-	cWave[0][0] = (Mat_2[0][0] + Mat_2[1][0]) / 2
-	cWave[0][1] = (Mat_2[0][1] + Mat_2[1][1]) / 2
-	cWave[0][2] = (Mat_2[0][2] + Mat_2[1][2]) / 2
+	WAVE/Z cWave, scalingW = root:scalingW
+	if(!WaveExists(cWave))
+		// find spindle midpoint, c. Store in cWave
+		Make/O/N=(1,3) cWave
+		cWave[0][0] = (Mat_2[0][0] + Mat_2[1][0]) / 2
+		cWave[0][1] = (Mat_2[0][1] + Mat_2[1][1]) / 2
+		cWave[0][2] = (Mat_2[0][2] + Mat_2[1][2]) / 2
+	else
+		// cWave needs scaling
+		cWave[][] *= ScalingW[0][q]
+	endif
 	// find theta and phi for spindle poles
 	Variable wx = Mat_2[0][0] - cWave[0][0]
 	Variable wy = Mat_2[0][1] - cWave[0][1]
@@ -392,16 +398,19 @@ Function RotateAndSitUp(CorrectVar)
 End
 
 Function FindTheCentre()
-	WAVE/Z Mat_2
-	if(!WaveExists(Mat_2))
-		DoAlert/T="Problem" 0, "No Mat_2 wave"
+	WAVE/Z Mat_1,Mat_2
+	if(!WaveExists(Mat_1))
+		DoAlert/T="Problem" 0, "No Mat_1 wave"
 		return -1
 	endif
-	// find spindle midpoint, c. Store in cWave
+	// find centroid of plate kinetochores, c. Store in cWave
 	Make/O/N=(1,3) cWave
-	cWave[0][0] = (Mat_2[0][0] + Mat_2[1][0]) / 2
-	cWave[0][1] = (Mat_2[0][1] + Mat_2[1][1]) / 2
-	cWave[0][2] = (Mat_2[0][2] + Mat_2[1][2]) / 2
+	WaveStats/Q/M=1/RMD=[][0] Mat_1
+	cWave[0][0] = V_Avg
+	WaveStats/Q/M=1/RMD=[][1] Mat_1
+	cWave[0][1] = V_Avg
+	WaveStats/Q/M=1/RMD=[][2] Mat_1
+	cWave[0][2] = V_Avg
 	// determine length c (point c to point p1) 
 	Variable wx = Mat_2[0][0] - cWave[0][0]
 	Variable wy = Mat_2[0][1] - cWave[0][1]
@@ -730,6 +739,7 @@ STATIC Function LoadThresholdedImage(ImageDiskFolderName,ImageFileName)
 		DoAlert/T="Problem" 0, "Image did not load"
 		return -1
 	endif
+	// we need to find the centre ~ this is also done later in RotateAndSitUp
 	Variable cc = FindTheCentre() // this is the half spindle length, in pixels.
 	// list of waves to process
 	String wList = "mat_1;mat_2;mat_4;mat_5;"
@@ -1232,6 +1242,7 @@ Function WorkOnDirectory()
 		RotateAndSitUp(0)
 		DistanceCalculations()
 		MakeWavesForGraphAndPlot(i)
+		MakeIndividualGizmo()
 		SetDataFolder root:data:
 	endfor
 	SetDataFolder root:
@@ -1373,7 +1384,7 @@ Function WorkOnDirectoryER()
 			//MakeIntWavesForGraphAndPlot(i)
 		endif
 		// goal here is to:
-		// 1. plot the rotated coord set coloured according to disance from the ER threshold
+		// 1. plot the rotated coord set coloured according to distance from the ER threshold (not done yet)
 		// 2. plot the rotated coord set normalised to the threshold
 		ScaleAllWaves(2,nCh) // this will scale without correcting Z
 		RotateAndSitUp(1)
