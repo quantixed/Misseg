@@ -17,6 +17,8 @@
 //4. A version of Misseg where the exclusion zone is used to rescale all the coordinates
 //   So that their position reflects their depth into the ER that surrounds the spindle.
 //   This version requires segmented images to be fed in.
+//   A "hybrid" version was created that does this analysis and then uses the original method
+//   to display. Shows a box plot of the exclusion zone ratio.
 
 
 ////////////////////////////////////////////////////////////////////////
@@ -1579,7 +1581,7 @@ STATIC Function PlotRatios()
 		Wave m0 = $newName
 		m0[0,numpnts(w0) - 1][i] = w0[p]
 		AppendBoxPlot/W=$plotName m0 vs xLabel
-		ModifyBoxPlot/W=$plotName trace=$newName,markers={19,-1,19},markerSizes={3,3,3},markerThick={0,0,0}
+		ModifyBoxPlot/W=$plotName trace=$newName,markers={19,-1,19},markerSizes={2,2,2},markerThick={0,0,0}
 		ModifyBoxPlot/W=$plotName trace=$newName,whiskerMethod=4
 		ModifyGraph/W=$plotName rgb($newName)=(colorWave[i][0],colorWave[i][1],colorWave[i][2],colorWave[i][3])
 	endfor
@@ -1696,14 +1698,14 @@ Function MakeTheGizmos()
 		AppendToGizmo/N=$gizName/D Scatter=gW4,name=scatter4
 		AppendToGizmo/N=$gizName/D Scatter=gW2,name=scatter2
 		AppendToGizmo/N=$gizName/D Scatter=gW1,name=scatter1
- 		ModifyGizmo/N=$gizName ModifyObject=scatter1,objectType=scatter,property={ size,0.2}
+ 		ModifyGizmo/N=$gizName ModifyObject=scatter1,objectType=scatter,property={ size,0.05}
  		ModifyGizmo/N=$gizName ModifyObject=scatter2,objectType=scatter,property={ size,0.4}
  		ModifyGizmo/N=$gizName ModifyObject=scatter4,objectType=scatter,property={ size,0.2}
  		ModifyGizmo/N=$gizName ModifyObject=scatter5,objectType=scatter,property={ size,0.2}
-		ModifyGizmo/N=$gizName ModifyObject=scatter1,objectType=scatter,property={ color,0,0,0,0.2}
-		ModifyGizmo/N=$gizName ModifyObject=scatter2,objectType=scatter,property={ color,1,0,0,1}
-		ModifyGizmo/N=$gizName ModifyObject=scatter4,objectType=scatter,property={ color,0,1,0,0.5}
-		ModifyGizmo/N=$gizName ModifyObject=scatter5,objectType=scatter,property={ color,0,0,1,0.5}
+        ModifyGizmo/N=$gizName ModifyObject=scatter1,objectType=scatter,property={ color,0.5,0.5,0.5,1}
+        ModifyGizmo/N=$gizName ModifyObject=scatter2,objectType=scatter,property={ color,0,0,0,1}
+        ModifyGizmo/N=$gizName ModifyObject=scatter4,objectType=scatter,property={ color,90/255,96/255,255/255,1}
+        ModifyGizmo/N=$gizName ModifyObject=scatter5,objectType=scatter,property={ color,255/255,113/255,24/255,1}
 		ModifyGizmo/N=$gizName insertDisplayList=0, attribute=blendFunc0
 		AppendToGizmo/N=$gizName attribute blendFunction={770,771},name=blendFunc0
 		ModifyGizmo/N=$gizName insertDisplayList=0, opName=enableBlend, operation=enable, data=3042
@@ -1718,10 +1720,45 @@ Function MakeTheGizmos()
 			ModifyGizmo/N=$gizName setOuterBox={-bigNum,bigNum,-bigNum,bigNum,-bigNum,bigNum}
 		endif
 		ModifyGizmo/N=$gizName scalingOption=0
-		ModifyGizmo/N=$gizName setQuaternion={0.5,0.5,0.5,0.5}
-		pictName = gizName + ".png"
-		SavePICT/O/P=TiffPath/E=-5/B=300 as pictName
+		// do some rotations and save - see notes below
+		DoRotationsAndSave(gizName)
 	endfor
+End
+
+// Notes about rotations
+// In the RotateAndSitUp function, poles were aligned in y and then rotated so that they became Z
+// So, x = X, y = Z, z = Y
+// Our natural view of the spindle is xy so we need to see XZ
+// Note that earlier versions of this code we looked at YZ
+// The notation I will use is +X+Z this means positive X on x (points right), positive Z on y (points up), i.e. Y away
+STATIC Function DoRotationsAndSave(gizName)
+	String gizName
+	String pictName
+	// +X+Z
+	ModifyGizmo/N=$gizName setQuaternion={sin(pi/4),0,0,cos(pi/4)}
+	pictName = gizName + "_+X+Z.png"
+	SavePICT/O/P=TiffPath/E=-5/B=300 as pictName
+	// +X+Y
+	ModifyGizmo/N=$gizName setQuaternion={0,0,0,0}
+	pictName = gizName + "_+X+Y.png"
+	SavePICT/O/P=TiffPath/E=-5/B=300 as pictName
+	// +Y+Z
+	ModifyGizmo/N=$gizName setQuaternion={0.5,0.5,0.5,0.5}
+	pictName = gizName + "_+Y+Z.png"
+	SavePICT/O/P=TiffPath/E=-5/B=300 as pictName
+	// upper quadrant 45 degree view
+	Make/O/N=4/FREE q1,q2,qr
+	MakeQuaternion(1,0,0,pi/2,q1) // 90 CCW about X
+	MakeQuaternion(0,1,0,0.75 * pi,q2) // 135 CCW about Y
+	MultiplyQuaternions(q1,q2,qr)
+	q1[] = qr[p]
+	MakeQuaternion(1,0,0,1.75 * pi,q2) // 135 CCW about X
+	MultiplyQuaternions(q1,q2,qr)
+	ModifyGizmo/N=$gizName setQuaternion={qr[0],qr[1],qr[2],qr[3]}
+	pictName = gizName + "_UQ.png"
+	SavePICT/O/P=TiffPath/E=-5/B=300 as pictName
+	// set back to +X+Z view
+	ModifyGizmo/N=$gizName setQuaternion={sin(pi/4),0,0,cos(pi/4)}
 End
 
 Function MakeIndividualGizmo()
@@ -1756,19 +1793,19 @@ Function MakeIndividualGizmo()
 	if(WaveExists(gW5) == 1)
 		AppendToGizmo/N=$gizName/D Scatter=gW5,name=scatter5
 		ModifyGizmo/N=$gizName ModifyObject=scatter5,objectType=scatter,property={ size,0.2}
-		ModifyGizmo/N=$gizName ModifyObject=scatter5,objectType=scatter,property={ color,0,0,1,0.5}
+		ModifyGizmo/N=$gizName ModifyObject=scatter5,objectType=scatter,property={ color,255/255,113/255,24/255,1}
 	endif
 	if(WaveExists(gW4) == 1)
 		AppendToGizmo/N=$gizName/D Scatter=gW4,name=scatter4
 		ModifyGizmo/N=$gizName ModifyObject=scatter4,objectType=scatter,property={ size,0.2}
-		ModifyGizmo/N=$gizName ModifyObject=scatter4,objectType=scatter,property={ color,0,1,0,0.5}
+		ModifyGizmo/N=$gizName ModifyObject=scatter4,objectType=scatter,property={ color,90/255,96/255,255/255,1}
 	endif
 	AppendToGizmo/N=$gizName/D Scatter=gW2,name=scatter2
 	ModifyGizmo/N=$gizName ModifyObject=scatter2,objectType=scatter,property={ size,0.4}
-	ModifyGizmo/N=$gizName ModifyObject=scatter2,objectType=scatter,property={ color,1,0,0,1}
+	ModifyGizmo/N=$gizName ModifyObject=scatter2,objectType=scatter,property={ color,0,0,0,1}
 	AppendToGizmo/N=$gizName/D Scatter=gW1,name=scatter1
-	ModifyGizmo/N=$gizName ModifyObject=scatter1,objectType=scatter,property={ size,0.2}
-	ModifyGizmo/N=$gizName ModifyObject=scatter1,objectType=scatter,property={ color,0,0,0,0.2}
+	ModifyGizmo/N=$gizName ModifyObject=scatter1,objectType=scatter,property={ size,0.05}
+	ModifyGizmo/N=$gizName ModifyObject=scatter1,objectType=scatter,property={ color,0.5,0.5,0.5,1}
 	
 	ModifyGizmo/N=$gizName insertDisplayList=0, attribute=blendFunc0
 	AppendToGizmo/N=$gizName attribute blendFunction={770,771},name=blendFunc0
@@ -2640,10 +2677,48 @@ Function VizSphereMask()
 End
 
 STATIC Function/WAVE MakeColorWave()
+	// This is for the box plot
+	// rows are the four items on box plot
+	// originally 1,2,4,5 were grey,red,green,blue
+	// now they are grey,orange,blue,red
 	Make/O/N=(4,4) colorWave = 0
-	colorWave[][3] = 32768
-	colorWave[1][0] = 65535
-	colorWave[2][1] = 65535
-	colorWave[3][2] = 65535
+	colorWave[][3] = 127 // alpha is 0.5
+	colorWave[0][0,2] = 127 // grey
+	colorWave[1][0,2] = {{0},{0},{0}} // black
+	colorWave[2][0,2] = {{90},{96},{255}} // blue
+	colorWave[3][0,2] = {{255},{113},{24}} // orange
+	colorWave *= 257
 	return colorWave
+End
+
+// q1 and q2 are 4 elements waves corresponding to {x,y,z,w} quaternions.
+// The function computes a new quaternion in qr which represents quaternion 
+// product q2*q1.
+Function MultiplyQuaternions(q2,q1,qr)
+	Wave q2,q1,qr
+	
+	Variable w1 = q1[3]
+	Variable w2 = q2[3]
+	qr[3] = w1 * w2 - (q1[0] * q2[0] + q1[1] * q2[1] + q1[2] * q2[2])
+	Make/N=4/FREE vcross = 0
+ 	vcross[0] = (q2[1] * q1[2]) - (q2[2] * q1[1])
+ 	vcross[1] = (q2[2] * q1[0]) - (q2[0] * q1[2])
+ 	vcross[2] = (q2[0] * q1[1]) - (q2[1] * q1[0])
+ 	MatrixOP/FREE aa = w1 * q2 + w2 * q1 + vcross
+	qr[0] = aa[0]
+	qr[1] = aa[1]
+	qr[2] = aa[2]
+	Variable NN = norm(qr)
+	qr /= NN
+End
+
+Function/WAVE MakeQuaternion(Ax,Ay,Az,theta,w)
+	Variable Ax,Ay,Az,theta
+	Wave w
+	Variable N = sqrt(Ax^2 + Ay^2 + Az^2)
+	w[0] = Ax * sin(theta/2)/N
+	w[1] = Ay * sin(theta/2)/N
+	w[2] = Az * sin(theta/2)/N
+	w[3] = cos(theta/2)
+	return w
 End
