@@ -1689,6 +1689,16 @@ Function MakeTheGizmos()
 		gizName = StringFromList(i,gizList)
 		KillWindow/Z $gizName
 		NewGizmo/N=$gizName
+		// add lights and properties first
+		AppendToGizmo/N=$gizName attribute specular={1,1,1,1,1032},name=specular0
+		AppendToGizmo/N=$gizName attribute shininess={20,40},name=shininess0
+		AppendToGizmo/N=$gizName light=Directional,name=light0
+		ModifyGizmo/N=$gizName modifyObject=light0,objectType=light,property={ position,0.4822,-0.5171,0.7071,0.0000}
+		ModifyGizmo/N=$gizName modifyObject=light0,objectType=light,property={ direction,0.4822,-0.5171,0.7071}
+		ModifyGizmo/N=$gizName setDisplayList=0, object=light0
+		ModifyGizmo/N=$gizName setDisplayList=1, attribute=shininess0
+		ModifyGizmo/N=$gizName setDisplayList=2, attribute=specular0
+		// select scatters
 		Wave gW1 = $StringFromList(i*4+0,modList)
 		Wave gW2 = $StringFromList(i*4+1,modList)
 		Wave gW4 = $StringFromList(i*4+2,modList)
@@ -1698,17 +1708,14 @@ Function MakeTheGizmos()
 		AppendToGizmo/N=$gizName/D Scatter=gW4,name=scatter4
 		AppendToGizmo/N=$gizName/D Scatter=gW2,name=scatter2
 		AppendToGizmo/N=$gizName/D Scatter=gW1,name=scatter1
- 		ModifyGizmo/N=$gizName ModifyObject=scatter1,objectType=scatter,property={ size,0.05}
- 		ModifyGizmo/N=$gizName ModifyObject=scatter2,objectType=scatter,property={ size,0.4}
- 		ModifyGizmo/N=$gizName ModifyObject=scatter4,objectType=scatter,property={ size,0.2}
- 		ModifyGizmo/N=$gizName ModifyObject=scatter5,objectType=scatter,property={ size,0.2}
-        ModifyGizmo/N=$gizName ModifyObject=scatter1,objectType=scatter,property={ color,0.5,0.5,0.5,1}
-        ModifyGizmo/N=$gizName ModifyObject=scatter2,objectType=scatter,property={ color,0,0,0,1}
-        ModifyGizmo/N=$gizName ModifyObject=scatter4,objectType=scatter,property={ color,90/255,96/255,255/255,1}
-        ModifyGizmo/N=$gizName ModifyObject=scatter5,objectType=scatter,property={ color,255/255,113/255,24/255,1}
-		ModifyGizmo/N=$gizName insertDisplayList=0, attribute=blendFunc0
-		AppendToGizmo/N=$gizName attribute blendFunction={770,771},name=blendFunc0
-		ModifyGizmo/N=$gizName insertDisplayList=0, opName=enableBlend, operation=enable, data=3042
+		ModifyGizmo/N=$gizName ModifyObject=scatter1,objectType=scatter,property={ size,0.05}
+		ModifyGizmo/N=$gizName ModifyObject=scatter2,objectType=scatter,property={ size,0.4}
+		ModifyGizmo/N=$gizName ModifyObject=scatter4,objectType=scatter,property={ size,0.2}
+		ModifyGizmo/N=$gizName ModifyObject=scatter5,objectType=scatter,property={ size,0.2}
+      ModifyGizmo/N=$gizName ModifyObject=scatter1,objectType=scatter,property={ color,0.5,0.5,0.5,1}
+      ModifyGizmo/N=$gizName ModifyObject=scatter2,objectType=scatter,property={ color,0,0,0,1}
+      ModifyGizmo/N=$gizName ModifyObject=scatter4,objectType=scatter,property={ color,90/255,96/255,255/255,1}
+      ModifyGizmo/N=$gizName ModifyObject=scatter5,objectType=scatter,property={ color,255/255,113/255,24/255,1}
 		bigNum = max(wavemax(gW1),wavemax(gW2),wavemax(gW4),wavemax(gW5))
 		bigNum = max(bigNum,abs(min(wavemin(gW1),wavemin(gW2),wavemin(gW4),wavemin(gW5))))+0.1
 		if(numtype(bigNum) > 0)
@@ -1723,6 +1730,12 @@ Function MakeTheGizmos()
 		// do some rotations and save - see notes below
 		DoRotationsAndSave(gizName)
 	endfor
+	// make and save "empty gizmo showing the axis cue"
+	gizName = "axisCue"
+	KillWindow/Z $gizName
+	NewGizmo/N=$gizName
+	ModifyGizmo/N=$gizName showAxisCue=1
+	DoRotationsAndSave(gizName)
 End
 
 // Notes about rotations
@@ -1752,7 +1765,7 @@ STATIC Function DoRotationsAndSave(gizName)
 	MakeQuaternion(0,1,0,0.75 * pi,q2) // 135 CCW about Y
 	MultiplyQuaternions(q1,q2,qr)
 	q1[] = qr[p]
-	MakeQuaternion(1,0,0,1.75 * pi,q2) // 135 CCW about X
+	MakeQuaternion(1,0,0,1.75 * pi,q2) // 315 CCW about X
 	MultiplyQuaternions(q1,q2,qr)
 	ModifyGizmo/N=$gizName setQuaternion={qr[0],qr[1],qr[2],qr[3]}
 	pictName = gizName + "_UQ.png"
@@ -1807,9 +1820,9 @@ Function MakeIndividualGizmo()
 	ModifyGizmo/N=$gizName ModifyObject=scatter1,objectType=scatter,property={ size,0.05}
 	ModifyGizmo/N=$gizName ModifyObject=scatter1,objectType=scatter,property={ color,0.5,0.5,0.5,1}
 	
-	ModifyGizmo/N=$gizName insertDisplayList=0, attribute=blendFunc0
-	AppendToGizmo/N=$gizName attribute blendFunction={770,771},name=blendFunc0
-	ModifyGizmo/N=$gizName insertDisplayList=0, opName=enableBlend, operation=enable, data=3042
+//	ModifyGizmo/N=$gizName insertDisplayList=0, attribute=blendFunc0
+//	AppendToGizmo/N=$gizName attribute blendFunction={770,771},name=blendFunc0
+//	ModifyGizmo/N=$gizName insertDisplayList=0, opName=enableBlend, operation=enable, data=3042
 	ModifyGizmo/N=$gizName scalingOption=0
 	ModifyGizmo/N=$gizName setQuaternion={0.5,0.5,0.5,0.5}
 	RescaleGizmo(2,gizName)
@@ -2033,7 +2046,7 @@ STATIC Function KillTheLayout(prefix,killWavesToo)
 	Variable i
  	
  	if(killWavesToo == 0)
- 		for(i = 0; i < allItems; i += 1)
+		for(i = 0; i < allItems; i += 1)
 			windowName = StringFromList(i, fullList)
 			KillWindow/Z $windowName	
 		endfor
@@ -2691,20 +2704,19 @@ STATIC Function/WAVE MakeColorWave()
 	return colorWave
 End
 
-// q1 and q2 are 4 elements waves corresponding to {x,y,z,w} quaternions.
-// The function computes a new quaternion in qr which represents quaternion 
-// product q2*q1.
-Function MultiplyQuaternions(q2,q1,qr)
-	Wave q2,q1,qr
+// q1 and q2 are waves that correspond to {x,y,z,w} quaternions.
+// New quaternion stored in qr which is the quaternion product q1*q2.
+Function MultiplyQuaternions(q1,q2,qr)
+	Wave q1,q2,qr
 	
-	Variable w1 = q1[3]
 	Variable w2 = q2[3]
-	qr[3] = w1 * w2 - (q1[0] * q2[0] + q1[1] * q2[1] + q1[2] * q2[2])
+	Variable w1 = q1[3]
+	qr[3] = w2 * w1 - (q2[0] * q1[0] + q2[1] * q1[1] + q2[2] * q1[2])
 	Make/N=4/FREE vcross = 0
- 	vcross[0] = (q2[1] * q1[2]) - (q2[2] * q1[1])
- 	vcross[1] = (q2[2] * q1[0]) - (q2[0] * q1[2])
- 	vcross[2] = (q2[0] * q1[1]) - (q2[1] * q1[0])
- 	MatrixOP/FREE aa = w1 * q2 + w2 * q1 + vcross
+ 	vcross[0] = (q1[1] * q2[2]) - (q1[2] * q2[1])
+ 	vcross[1] = (q1[2] * q2[0]) - (q1[0] * q2[2])
+ 	vcross[2] = (q1[0] * q2[1]) - (q1[1] * q2[0])
+ 	MatrixOP/FREE aa = w2 * q1 + w1 * q2 + vcross
 	qr[0] = aa[0]
 	qr[1] = aa[1]
 	qr[2] = aa[2]
@@ -2712,7 +2724,7 @@ Function MultiplyQuaternions(q2,q1,qr)
 	qr /= NN
 End
 
-Function/WAVE MakeQuaternion(Ax,Ay,Az,theta,w)
+Function MakeQuaternion(Ax,Ay,Az,theta,w)
 	Variable Ax,Ay,Az,theta
 	Wave w
 	Variable N = sqrt(Ax^2 + Ay^2 + Az^2)
@@ -2720,5 +2732,4 @@ Function/WAVE MakeQuaternion(Ax,Ay,Az,theta,w)
 	w[1] = Ay * sin(theta/2)/N
 	w[2] = Az * sin(theta/2)/N
 	w[3] = cos(theta/2)
-	return w
 End
