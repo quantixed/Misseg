@@ -3,6 +3,70 @@
 #include <3DWaveDisplay>
 #include <ImageSlider>
 
+////////////////////////////////////////////////////////////////////////
+// Menu items
+////////////////////////////////////////////////////////////////////////
+Menu "Macros"
+	"Classify Kinetochores...", /Q, KinetochoreClassification()
+End
+
+
+////////////////////////////////////////////////////////////////////////
+// Master functions and wrappers
+////////////////////////////////////////////////////////////////////////
+Function KinetochoreClassification()
+	LoadFilesAndClassify()
+End
+
+////////////////////////////////////////////////////////////////////////
+// Main functions
+////////////////////////////////////////////////////////////////////////
+Function LoadFilesAndClassify()
+	SetDataFolder root:
+	// first, locate the TIFF images of the D3D.dv files
+	NewPath/O/Q/M="Locate TIFF images" imgDiskFolder
+	if (V_flag != 0)
+		DoAlert 0, "Disk folder error"
+		return -1
+	endif
+	PathInfo/S imgDiskFolder
+	Make/O/N=2/T pathWave
+	pathWave[0] = S_Path
+	String imgList = IndexedFile(expDiskFolder,-1,".tif")
+	Wave/T w0 = ListToTextWave(imgList,";")
+	Variable nFiles = ItemsInList(imgList)
+	Make/O/N=(nFiles)/T imgFileList
+	imgFileList[] = w0[p]
+	// now, locate the folder containing the csv files from 3DOC in Fiji
+	NewPath/O/Q/M="Locate csv files (outputs will be saved here)" csvDiskFolder
+	if (V_flag != 0)
+		DoAlert 0, "Disk folder error"
+		return -1
+	endif
+	PathInfo/S csvDiskFolder
+	pathWave[1] = S_Path
+	String csvList = IndexedFile(expDiskFolder,-1,"TEXT")
+	Wave/T w1 = ListToTextWave(imgList,";")
+	Make/O/N=(ItemsInList(csvList))/T csvFileList
+	csvFileList[] = w1[p]
+	
+	String thisImg, originalFileName
+	Variable i
+	
+	NewDataFolder/O/S root:data
+	
+	for (i = 0; i < nFiles; i += 1)
+		thisImg = StringFromList(i, imgList)
+		originalFileName = ReplaceString(".tif",ThisFile,"")
+		// load image and call it image in data folder
+		// load csv file
+//		LoadWave/A/J/D/O/K=1/V={" "," $",0,0}/L={0,0,0,1,0}/P=expDiskFolder ThisFile
+		GenerateExamineWindow()
+		// how do we do flow control here because we need to wait for the result before continuing the loop
+		SetDataFolder root:data:
+	endfor
+End
+
 Function GenerateExamineWindow()
 	WAVE/Z Image
 	KillWindow/Z examine
@@ -18,7 +82,7 @@ Function GenerateExamineWindow()
 	liveXW[] = (floor(ZW[p]) == 0+1) ? XW[p] : NaN
 	liveYW[] = (floor(ZW[p]) == 0+1) ? YW[p] : NaN
 	ktCat[] = 1
-	Make/O/N=(6,4) colorWave={{0.5,1,0,0,1,0},{0.5,1,0,0,1,1},{0.5,1,0,0,0,1},{0.75,0.75,0,0,0.75,0.75}}
+	Make/O/N=(6,4) colorWave={{0.5,0.99,0,0,0.352941,1},{0.5,0.99,0,0,0.376471,0.443137},{0.5,0.99,0,0,1,0.0941176},{1,1,1,1,1,1}}
 	colorWave[][] = floor(65535*colorWave[p][q])
 	AppendToGraph/T/W=examine liveYW/TN=kts vs liveXW
 	ModifyGraph/W=examine mode(kts)=3,marker(kts)=8,msize(kts)=5,mrkThick(kts)=2
@@ -26,10 +90,9 @@ Function GenerateExamineWindow()
 	ModifyGraph/W=examine zColor(kts)={ktCat,0,5,ctableRGB,0,colorWave}
 	AppendToGraph/T/W=examine liveYW/TN=ktlabels vs liveXW
 	ModifyGraph/W=examine mode(ktlabels)=3,textMarker(ktlabels)={ktNum,"default",0,0,2,-2.50,2.50}
-	ModifyGraph/W=examine rgb(ktlabels)=(65535,65535,65535,32768)
+	ModifyGraph/W=examine rgb(ktlabels)=(65535,65535,65535,49151)
 	ktCategoryPanel(nKts)
 End
-
 
 Function updateFrame(liveSlice)
 	Variable liveSlice
@@ -37,7 +100,6 @@ Function updateFrame(liveSlice)
 	liveXW[] = (floor(ZW[p]) == liveSlice + 1) ? XW[p] : NaN
 	liveYW[] = (floor(ZW[p]) == liveSlice + 1) ? YW[p] : NaN
 End
-
 
 Function hook(s)
 	STRUCT WMWinHookStruct &s
@@ -49,7 +111,6 @@ Function hook(s)
 	
 	return hookResult
 End
-
 
 Function ActionProcName(sa) : SliderControl
 	STRUCT WMSliderAction &sa
@@ -77,8 +138,9 @@ Function ktCategoryPanel(nKts)
 	NewPanel/N=ktCategory/K=1/W=(0,0,20+140*nCol,130+20*nRow)/HOST=examine/EXT=0
 	// labelling of columns
 	DrawText/W=ktCategory 10,30,"Kinetochore category"
-	// do it button
-	Button DoIt,pos={10,90+20*nRow},size={120,20},proc=CompleteButtonProc,title="Complete"
+	// Two buttons
+	Button Reset,pos={10,65+20*nRow},size={80,20},proc=CompleteButtonProc,title="Reset"
+	Button Complete,pos={10,90+20*nRow},size={120,20},proc=CompleteButtonProc,title="Complete"
 	// insert rows
 	String boxName0, valname0
 	String list = "Error;Align;Poles;BG;Misalign;Misalign-ER;"
@@ -91,9 +153,7 @@ Function ktCategoryPanel(nKts)
 		boxName0 = "box0_" + num2str(i)
 		// row label
 		DrawText/W=ktCategory 10+140*j,68+(mod(i,nRow)*20),num2str(i+1)
-		// condition label
-//		SetVariable $boxName0,pos={30+120*j,53+(mod(i,nRow)*20)},size={50,14},value= ktCat[i], title=" "
-//		PopUpMenu $boxName0,pos={30+120*j,53+(mod(i,nRow)*20)},size={50,14},value= "Error;Aligned;MisalignedNotEnsheathed;MisalignedEnsheathed;", popvalue = StringFromList(ktCat[i],popupStr)
+		// make the popups - thanks to chozo for this code
 		String presetTo = StringFromList(ktCat[i],list)
 		Variable mode = 1 + WhichListItem(presetTo,list) // about the same as 1+ktCat[i]
 		PopUpMenu $boxName0,pos={30+140*j,53+(mod(i,nRow)*20)},size={90,14}, bodywidth=90,value= #popupStr, popvalue = presetTo, mode=mode, proc=ktPopupHelper
@@ -101,8 +161,6 @@ Function ktCategoryPanel(nKts)
 		valName0 = "val0_" + num2str(i)
 		ValDisplay $valName0, pos={124+140*j,53+(mod(i,nRow)*20)}, size={18,18},bodyWidth=18,value=0,mode=1,barmisc={0,0}
 		ValDisplay $valName0, limits={-1,1,0}, frame=0, zeroColor=(colorWave[ktCat[i]][0],colorWave[ktCat[i]][1],colorWave[ktCat[i]][2],colorWave[ktCat[i]][3])
-//		SetDrawEnv fillfgc=(colorWave[ktVal][0],colorWave[ktVal][1],colorWave[ktVal][2],colorWave[ktVal][3])
-//		DrawOval/W=ktCategory 80+120*j,50+(mod(i,nRow)*20),98+120*j,68+(mod(i,nRow)*20)
 	endfor
 End
 
@@ -122,67 +180,22 @@ Function ktPopupHelper(s) : PopupMenuControl
     return 0
 End
 
-//// define buttons
-//Function ButtonProc(ctrlName) : ButtonControl
-//	String ctrlName
-//
-//	Wave/T PathWave1,PathWave2
-//	Variable refnum, wNum, ii
-//	String expr, wNumStr, iiStr, stringForTextWave
-//
-//	if(StringMatch(ctrlName,"file*") == 1)
-//		expr="file([[:digit:]]+)\\w([[:digit:]]+)"
-//		SplitString/E=(expr) ctrlName, wNumStr, iiStr
-//		// get File Path
-//		Open/D/R/F="*.xls*"/M="Select Excel Workbook" refNum
-//		stringForTextWave = S_filename
-//	else
-//		expr="dir([[:digit:]]+)\\w([[:digit:]]+)"
-//		SplitString/E=(expr) ctrlName, wNumStr, iiStr
-//		// set outputfolder
-//		NewPath/O/Q DirOfCSVs
-//		PathInfo DirOfCSVs
-//		stringForTextWave = S_Path
-//	endif
-//
-//	if (strlen(stringForTextWave) == 0) // user pressed cancel
-//		return -1
-//	endif
-//	wNum = str2num(wNumStr)
-//	ii = str2num(iiStr)
-//	if (wNum == 1)
-//		PathWave1[ii] = stringForTextWave
-//	else
-//		PathWave2[ii] = stringForTextWave
-//	endif
-//End
-//
-//Function DoItButtonProc(ctrlName) : ButtonControl
-//	String ctrlName
-// 	
-// 	WAVE/T CondWave
-//	WAVE/T PathWave1
-//	Variable okvar = 0
-//	
-//	strswitch(ctrlName)	
-//		case "DoIt" :
-//			// check CondWave
-//			okvar = WaveChecker(CondWave)
-//			if (okvar == -1)
-//				DoAlert 0, "Error: Not all conditions have a name."
-//				break
-//			endif
-//			okvar = NameChecker(CondWave)
-//			if (okvar == -1)
-//				DoAlert 0, "Error: Two conditions have the same name."
-//				break
-//			endif
-//			okvar = WaveChecker(PathWave1)
-//			if (okvar == -1)
-//				DoAlert 0, "Error: Not all conditions have a file to load."
-//				break
-//			else
-//				Migrate()
-//			endif
-//	endswitch	
-//End
+Function CompleteButtonProc(ctrlName) : ButtonControl
+	String ctrlName
+ 	
+ 	WAVE/Z XW, YW, ZW, ktCat
+ 	WAVE/T/Z PathWave = root:PathWave
+ 	WAVE/T/Z currentFileName = root:currentFileName
+ 	NewPath/O/Q txtDiskFolder, PathWave[1]
+ 	String txtName = currentFileName[2] + "_ktCat.txt"
+	
+	strswitch(ctrlName)	
+		case "Complete" :
+			Save/J/P=txtDiskFolder/W XW,XW,YW,ktCat as txtName
+			KillWindow/Z examine
+			KillWindow/Z ktCategory
+		case "Reset" :
+			ktCat[] = 1
+			ktCategoryPanel(numpnts(ktCat))
+	endswitch
+End
