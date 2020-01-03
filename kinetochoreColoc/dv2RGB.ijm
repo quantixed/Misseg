@@ -69,7 +69,7 @@ function processFile(inputStr, file, rCh, gCh, bCh)	{
 	id1 = getImageID();
 	selectImage(id1);
 	run("RGB Color", "slices");
-	fPath = output + File.separator + baseName + "_RGB.tif";
+	fPath = output + File.separator + baseName + ".tif";
 	saveAs("Tiff", fPath);
 	close();
 	// close all open windows
