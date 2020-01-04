@@ -37,3 +37,12 @@ Note that the furthest half of object 5 is used as the pool for averaging.
 --
 
 Note that flexibility of these analyses is limited. Further modifications to the code are needed to (for example) analyse more or less than 4 object classes.
+
+## Kinetochore coloc
+
+A series of scripts to examine co-localisation of kinetochore signals in 3D image stacks.
+
+- `kinetochoreColoc.ijm` loads dv files segments them and uses 3DOC to find the positions of two signals in channels 3 and 4. This is a substitute for Imaris (since we were having problems with the bridge to MATLAB and we did not have a current version)
+- `kinetochoreSegmentation.ijm` is a tool to check how the segmentation (thresholding) performed in the previous script
+- `dv2RGB.ijm` will convert a folder of dv files to RGB tiffs for classification in Igor
+- `kineotchoreColoc.ipf` is a workflow to classify the kinetochores from `kinetochoreColoc.ijm` and then analyse their proximity
