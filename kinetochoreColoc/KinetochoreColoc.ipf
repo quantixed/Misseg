@@ -15,7 +15,6 @@ End
 // Master functions and wrappers
 ////////////////////////////////////////////////////////////////////////
 Function KinetochoreClassification()
-	PackageSetup()
 	LoadFilesAndClassify()
 End
 
@@ -55,9 +54,12 @@ Function LoadFilesAndClassify()
 	Make/O/N=(ItemsInList(csvList))/T csvFileList
 	csvFileList[] = w1[p]
 	
+	//we will store the currentFileName in a textwave in root
+	Make/O/N=(1)/T currentFileName
+	Wave/T currentFileName = root:currentFileName
+	
 	String thisImg, originalFileName, thisCSV
 	NewDataFolder/O/S root:data
-	NVAR running = root:Packages:KtClass:running
 	
 	Variable i
 	
@@ -69,15 +71,12 @@ Function LoadFilesAndClassify()
 			continue
 		endif
 		// if not, load image and call it "image" in data folder
+		currentFileName[0] = originalFileName
 		ImageLoad/P=imgDiskFolder/T=tiff/O/S=0/C=-1/LR3D/Q/N=image thisImg
 		// load csv file
 		thisCSV = originalFileName + "_ktsMod.csv"
 		LoadWave/W/A/J/O/K=1/G/L={0,0,0,0,0}/P=csvDiskFolder thisCSV
-		running = 1
 		GenerateExamineWindow()
-		do
-			// wait until progress
-		while (running == 1)
 		SetDataFolder root:data:
 	endfor
 End
@@ -87,7 +86,6 @@ End
 ////////////////////////////////////////////////////////////////////////
 
 Function GenerateExamineWindow()
-	NVAR running = root:Packages:KtClass:running
 	WAVE/Z Image
 	KillWindow/Z examine
 	NewImage/N=examine Image
@@ -96,9 +94,9 @@ Function GenerateExamineWindow()
 	SetWindow examine hook(myhook) = hook
 	Slider sld, limits={0,DimSize(Image,3)-1,1}, size={400,20},vert=0,proc=ActionProcName
 	WAVE/Z XW, YW, ZW
-	WAVE/Z/T ktNum
 	Variable nKts = numpnts(YW)
 	Make/O/N=(nKts) liveXW, liveYW, ktCat
+	Make/O/N=(nKts)/T ktNum = num2str(p)
 	liveXW[] = (floor(ZW[p]) == 0+1) ? XW[p] : NaN
 	liveYW[] = (floor(ZW[p]) == 0+1) ? YW[p] : NaN
 	ktCat[] = 1
@@ -111,14 +109,7 @@ Function GenerateExamineWindow()
 	AppendToGraph/T/W=examine liveYW/TN=ktlabels vs liveXW
 	ModifyGraph/W=examine mode(ktlabels)=3,textMarker(ktlabels)={ktNum,"default",0,0,2,-2.50,2.50}
 	ModifyGraph/W=examine rgb(ktlabels)=(65535,65535,65535,49151)
-	if(ktCategoryPanel(nKts) == 0)
-		KillWindow/Z examine
-		KillWindow/Z ktCategory
-		running = 0
-		return 0 // no need to progress
-	else
-		return 1 // success
-	endif
+	ktCategoryPanel(nKts)
 End
 
 Function updateFrame(liveSlice)
@@ -166,8 +157,8 @@ Function ktCategoryPanel(nKts)
 	// labelling of columns
 	DrawText/W=ktCategory 10,30,"Kinetochore category"
 	// Three buttons
-	Button Reset,pos={10,45+20*nRow},size={130,20},proc=CompleteButtonProc,title="Reset"
-	Button Reset,pos={10,70+20*nRow},size={130,20},proc=CompleteButtonProc,title="Skip"
+	Button Skip,pos={10,45+20*nRow},size={130,20},proc=CompleteButtonProc,title="Skip"
+	Button Reset,pos={10,70+20*nRow},size={130,20},proc=CompleteButtonProc,title="Reset"
 	Button Complete,pos={10,95+20*nRow},size={130,20},proc=CompleteButtonProc,title="Complete"
 	// insert rows
 	String boxName0, valname0
@@ -191,7 +182,7 @@ Function ktCategoryPanel(nKts)
 		ValDisplay $valName0, limits={-1,1,0}, frame=0, zeroColor=(colorWave[ktCat[i]][0],colorWave[ktCat[i]][1],colorWave[ktCat[i]][2],colorWave[ktCat[i]][3])
 	endfor
 	
-	return 1
+	PauseForUser ktCategory, examine
 End
 
 Function ktPopupHelper(s) : PopupMenuControl
@@ -213,16 +204,16 @@ End
 Function CompleteButtonProc(ctrlName) : ButtonControl
 	String ctrlName
  	
- 	NVAR running = root:Packages:MyDemo:running
  	WAVE/Z XW, YW, ZW, ktCat
  	WAVE/T/Z PathWave = root:PathWave
  	WAVE/T/Z currentFileName = root:currentFileName
  	NewPath/O/Q txtDiskFolder, PathWave[1]
- 	String txtName = currentFileName[2] + "_ktCat.txt"
+ 	String txtName = currentFileName[0] + "_ktCat.txt"
 	
 	strswitch(ctrlName)
 		case "Skip" :
-			running = 0
+			KillWindow/Z examine
+			KillWindow/Z ktCategory
 			return 0
 		case "Reset" :
 			ktCat[] = 1
@@ -232,7 +223,6 @@ Function CompleteButtonProc(ctrlName) : ButtonControl
 			Save/J/P=txtDiskFolder/W XW,XW,YW,ktCat as txtName
 			KillWindow/Z examine
 			KillWindow/Z ktCategory
-			running = 0
 			return 1
 	endswitch
 End
@@ -241,16 +231,3 @@ End
 ////////////////////////////////////////////////////////////////////////
 // Utility functions
 ////////////////////////////////////////////////////////////////////////
-
-STATIC Function PackageSetUp()
-	DFREF dfSav = GetDataFolderDFR()
-	NewDataFolder/O/S root:Packages
-	NewDataFolder/O/S root:Packages:KtClass	// our variables go here
-	// create globals if needed
-	if(NumVarOrDefault("initiated",0) == 0)
-		Variable/G initiated = 1
-		Variable/G running = 0				// we'll use this to pause the flow
-	endif
-	
-	SetDataFolder dfSav
-End
