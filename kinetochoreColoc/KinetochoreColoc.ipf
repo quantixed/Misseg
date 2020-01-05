@@ -50,6 +50,10 @@ End
 
 Function DisplayUpdatedSelector()
 	SetDataFolder root:
+	if(ItemsInList(PathList("*DiskFolder",";","")) < 2)
+		DoAlert 0, "Please load the file lists first"
+		return -1
+	endif
 	// update filelists - all images
 	String imgList = IndexedFile(imgDiskFolder,-1,".tif")
 	// all csv files - each time this is run, it will grow
@@ -232,10 +236,16 @@ Function ktCategoryPanel(nKts)
 	NewPanel/N=ktCategory/K=1/W=(0,0,20+140*nCol,150+20*nRow)/HOST=examine/EXT=0
 	// labelling of columns
 	DrawText/W=ktCategory 10,30,"Kinetochore category"
-	// Three buttons
-	Button Skip,pos={10,60+20*nRow},size={130,20},proc=CompleteButtonProc,title="Skip"
-	Button Reset,pos={10,85+20*nRow},size={130,20},proc=CompleteButtonProc,title="Reset"
-	Button Complete,pos={10,110+20*nRow},size={130,20},proc=CompleteButtonProc,title="Complete"
+	// Four buttons
+	Button Skip,pos={10,60+20*nRow},size={130,20},proc=CompleteButtonProc,title="Exit - no save"
+	Button Reset,pos={10,82+20*nRow},size={130,20},proc=CompleteButtonProc,title="Reset kinetochores"
+	Button Pass,pos={10,104+20*nRow},size={130,20},proc=CompleteButtonProc,title="Don't analyse"
+	Button Complete,pos={10,126+20*nRow},fColor=(45489,65535,45489),size={130,20},proc=CompleteButtonProc,title="Complete - save"
+	// add some help
+	Button Skip,help={"Exits the image without saving.\rDo this if you want to take a break."}
+	Button Reset,help={"Reset values of all kinetochores to 1 so that you can start over."}
+	Button Pass,help={"If the image is not a good cell (not at right stage, kinetochores bad etc.)\rclick this so that the image is not analysed."}
+	Button Complete,help={"When you have finished the classification, click here to save.\rImage will not be available for reclassification."}
 	// insert rows
 	String boxName0, valname0
 	String list = "Error;Align;Poles;BG;Misalign;Misalign-ER;"
@@ -293,6 +303,12 @@ Function CompleteButtonProc(ctrlName) : ButtonControl
 			ktCat[] = 1
 			ktCategoryPanel(numpnts(ktCat))
 			break	
+		case "Pass" :
+			ktCat[] = 0
+			Save/J/P=csvDiskFolder/W XW,XW,YW,ktCat as txtName
+			KillWindow/Z examine
+			KillWindow/Z ktCategory
+			return 1	
 		case "Complete" :
 			Save/J/P=csvDiskFolder/W XW,XW,YW,ktCat as txtName
 			KillWindow/Z examine
