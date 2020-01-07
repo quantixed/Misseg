@@ -1,6 +1,5 @@
 #pragma TextEncoding = "UTF-8"
 #pragma rtGlobals=3		// Use modern global access method and strict wave access.
-#include <Math Utility Functions>
 
 //Notes on Misseg:
 //This ipf grew out of XML Analysis.
@@ -24,11 +23,13 @@
 ////////////////////////////////////////////////////////////////////////
 // Menu items
 ////////////////////////////////////////////////////////////////////////
-Menu "Macros"
-	"Misseg (Spatial)...", /Q, WorkflowForXMLAnalysisDir()
-	"Misseg (Exclusion Zone)...", /Q, WorkflowForXMLAnalysisWithER()
-	"Image Analysis (Spatial)...", /Q, WorkflowForImageAnalysisDir()
-	"Image Clipping Extension...", /Q, WorkflowForImageClipping()
+Menu "Misseg"
+	Submenu "Misseg functions"
+		"Misseg (Spatial)...", /Q, WorkflowForXMLAnalysisDir()
+		"Misseg (Exclusion Zone)...", /Q, WorkflowForXMLAnalysisWithER()
+		"Image Analysis (Spatial)...", /Q, WorkflowForImageAnalysisDir()
+		"Image Clipping Extension...", /Q, WorkflowForImageClipping()
+	End
 End
 
 ////////////////////////////////////////////////////////////////////////
@@ -1566,7 +1567,7 @@ STATIC Function PlotRatios()
 		wName = "all_rat_" + StringFromList(i,ObjString)
 		Wave w0 = $wName
 		WaveTransform zapnans w0
-		w0[] = log2(w0[p])
+		w0[] = ln(w0[p])
 		nRows = Max(nRows,numpnts(w0))
 	endfor
 	

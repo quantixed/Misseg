@@ -6,9 +6,11 @@
 ////////////////////////////////////////////////////////////////////////
 // Menu items
 ////////////////////////////////////////////////////////////////////////
-Menu "Macros"
-	"Classify Kinetochores...", /Q, KinetochoreClassification()
-	"Pick another image", /Q, DisplayUpdatedSelector()
+Menu "Misseg"
+	Submenu "Kinetochore Coloc"
+		"Classify Kinetochores...", /Q, KinetochoreClassification()
+		"Pick another image", /Q, DisplayUpdatedSelector()
+	End
 End
 
 
