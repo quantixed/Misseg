@@ -1567,7 +1567,7 @@ STATIC Function PlotRatios()
 		wName = "all_rat_" + StringFromList(i,ObjString)
 		Wave w0 = $wName
 		WaveTransform zapnans w0
-		w0[] = ln(w0[p])
+		w0[] = log(w0[p]) / log(2)
 		nRows = Max(nRows,numpnts(w0))
 	endfor
 	
