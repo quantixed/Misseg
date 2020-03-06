@@ -10,6 +10,7 @@ Menu "Misseg"
 	Submenu "Kinetochore Coloc"
 		"Classify Kinetochores...", /Q, KinetochoreClassification()
 		"Pick another image", /Q, DisplayUpdatedSelector()
+		"Coloc Analysis...", /Q, KinetochoreColoc()
 	End
 End
 
@@ -20,6 +21,10 @@ End
 Function KinetochoreClassification()
 	SetUpFilesToLoad()
 	DisplayUpdatedSelector()
+End
+
+Function KinetochoreColoc()
+	LoadCSVFiles()
 End
 
 ////////////////////////////////////////////////////////////////////////
@@ -100,6 +105,99 @@ Function DisplayUpdatedSelector()
 	csvFileList[] = w1[p]
 
 	BuildSelectorPanel()
+End
+
+Function LoadCSVFiles()
+	SetDataFolder root:
+	// locate the folder containing the csv files from 3DOC in Fiji
+	NewPath/O/Q/M="Locate csv files (outputs will be saved here)" csvDiskFolder
+	if (V_flag != 0)
+		DoAlert 0, "Disk folder error"
+		return -1
+	endif
+	PathInfo/S csvDiskFolder
+	Make/O/N=2/T pathWave
+	pathWave[1] = "" // do this for consistency with previous code
+	
+	// each image has four text files
+	// 1 ktsMod.csv
+	// 2 knstrn.csv
+	// 3 ktCat.txt
+	// 4 log.txt
+	// we need the first 3 and not the 4th
+	
+	// first run a check on all the files
+	String fileList = IndexedFile(csvDiskFolder,-1,"TEXT")
+	if (ItemsInList(fileList) < 3)
+		DoAlert 0, "Found less than three text files"
+		return -1
+	endif
+	Variable nFiles = ItemsInList(fileList)
+	String ktCatList = ListMatch(fileList,"*_ktCat.txt")
+	Variable nCatFiles = ItemsInList(ktCatList)
+		
+	Print "Checking categorisation files:", nCatFiles, "found."
+	Print "There should be", ItemsInList(ListMatch(fileList,"*_ktsMod.csv"))
+	
+	// check and then load valid triplets
+	String fileName, originalFileName
+	String validKtCatList = ktCatList
+	
+	Variable i
+	
+	for(i = 0; i < nCatFiles; i += 1)
+		fileName = StringFromList(i,ktCatList)
+		originalFileName = ReplaceString("_ktCat.txt",fileName,"")
+		if(FindListItem(originalFileName + "_ktsMod.csv", fileList) == -1)
+			Print originalFileName, "missing ktsMod file"
+			validKtCatList = RemoveFromList(fileName, validKtCatList)
+		endif
+		if(FindListItem(originalFileName + "_knstrn.csv", fileList) == -1)
+			Print originalFileName, "missing knstrn file"
+			validKtCatList = RemoveFromList(fileName, validKtCatList)
+		endif
+	endfor
+	
+	NewDataFolder/O/S root:data
+	nCatFiles = ItemsInList(validKtCatList)
+	Wave/T w0 = ListToTextWave(validKtCatList,";")
+	Make/O/N=(nCatFiles)/T root:ktCatNameWave
+	Wave/T ktCatNameWave = root:ktCatNameWave
+	ktCatNameWave[] = w0[p]
+	
+	String thisFile,wName
+	Variable err = GetRTError(1)
+
+	// now we will load everything in
+	for(i = 0; i < nCatFiles; i += 1)
+		fileName = ktCatNameWave[i]
+		thisFile = fileName
+		wName = "ktCat_" + num2str(i) + "_M"
+		if(CheckForData("csvDiskFolder", thisFile) > 1)
+			LoadWave/M/O/J/K=1/L={0,1,0,0,0}/P=csvDiskFolder/A=$wName/Q thisFile
+		else
+			Make/O/N=(1,4) $(wName + "0")
+		endif
+		
+		originalFileName = ReplaceString("_ktCat.txt",fileName,"")
+		thisfile = originalFileName + "_ktsMod.csv"
+		wName = "ktsMod_" + num2str(i) + "_M"
+		if(CheckForData("csvDiskFolder", thisFile) > 1)
+			LoadWave/M/O/J/K=1/L={0,1,0,0,0}/P=csvDiskFolder/A=$wName/Q thisFile
+		else
+			Make/O/N=(1,25) $(wName + "0")
+		endif
+		
+		thisfile = originalFileName + "_knstrn.csv"
+		wName = "knstrn_" + num2str(i) + "_M"
+		if(CheckForData("csvDiskFolder", thisFile) > 1)
+			LoadWave/M/O/J/K=1/L={0,1,0,0,0}/P=csvDiskFolder/A=$wName/Q thisFile
+		else
+			Make/O/N=(1,25) $(wName + "0")
+		endif
+	endfor
+	
+	SetDataFolder root:	
 End
 
 ////////////////////////////////////////////////////////////////////////
@@ -307,12 +405,12 @@ Function CompleteButtonProc(ctrlName) : ButtonControl
 			break	
 		case "Pass" :
 			ktCat[] = 0
-			Save/J/P=csvDiskFolder/W XW,XW,YW,ktCat as txtName
+			Save/J/P=csvDiskFolder/W XW,YW,ZW,ktCat as txtName
 			KillWindow/Z examine
 			KillWindow/Z ktCategory
 			return 1	
 		case "Complete" :
-			Save/J/P=csvDiskFolder/W XW,XW,YW,ktCat as txtName
+			Save/J/P=csvDiskFolder/W XW,YW,ZW,ktCat as txtName
 			KillWindow/Z examine
 			KillWindow/Z ktCategory
 			return 1
@@ -323,3 +421,27 @@ End
 ////////////////////////////////////////////////////////////////////////
 // Utility functions
 ////////////////////////////////////////////////////////////////////////
+
+STATIC Function CheckForData(pathName, filePath)
+	// header (column names) are 243 characters
+	// check that first data row is not blank
+	String pathName	 // Name of symbolic path or ""
+	String filePath		 // Name of file or partial path relative to symbolic path.
+
+	Variable refNum
+
+	Open/R/P=$pathName refNum as filePath
+	
+	String buffer, text
+	Variable line = 0
+	
+	do
+		FReadLine refNum, buffer
+		if (strlen(buffer) == 0)
+				return line
+		endif
+		line += 1
+	while(line < 2)
+	
+	return line	   // return 2 if there was at least 1 data row
+End
