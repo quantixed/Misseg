@@ -2,6 +2,7 @@
 #pragma rtGlobals=3		// Use modern global access method and strict wave access.
 #include <3DWaveDisplay>
 #include <ImageSlider>
+#include "Misseg"
 
 ////////////////////////////////////////////////////////////////////////
 // Menu items
@@ -24,7 +25,11 @@ Function KinetochoreClassification()
 End
 
 Function KinetochoreColoc()
-	LoadCSVFiles()
+	Misseg#CleanSlate()
+	if(LoadCSVFiles() == -1)
+		return -1
+	endif
+	NNCalcs()
 End
 
 ////////////////////////////////////////////////////////////////////////
@@ -195,9 +200,73 @@ Function LoadCSVFiles()
 		else
 			Make/O/N=(1,25) $(wName + "0")
 		endif
+		CSVChecker(i)
 	endfor
 	
 	SetDataFolder root:	
+End
+
+Function NNCalcs()
+	Wave/Z/T ktCatNameWave = root:ktCatNameWave
+	Variable nWave = numpnts(ktCatNameWave)
+	
+	Make/O/N=(nWave,7) root:nKtWave
+	Wave nKtWave = root:nKtWave
+	String wName
+	SetDataFolder root:data
+	
+	Variable i
+	
+	for(i = 0; i < nWave; i += 1)
+		wName = "ktCat_" + num2str(i) + "_M0"
+		Wave w0 = $wName
+		nKtWave[i][] = GetCategories(w0,q) // 7th column will be set to 0
+		nKtWave[i][6] = DimSize(w0,0)
+		if((nKtWave[i][0] + nKtWave[i][1] + nKtWave[i][2] + nKtWave[i][3] + nKtWave[i][4] + nKtWave[i][5]) != nKtWave[i][6])
+			Print "dataset", i, "mismatch in classification"
+		endif
+		// check if there are no Kt to analyse
+		if(nKtWave[i][0] == nKtWave[i][6])
+			continue
+		else
+			// 10,11,12 are x,y,z in ktsMod (w1) and knstrn (w2)
+			NNWrapper(i,1)
+			NNWrapper(i,4)
+			NNWrapper(i,5)
+		endif
+	endfor
+	
+	SetDataFolder root:
+End
+
+STATIC Function NNWrapper(ii,cat)
+	Variable ii,cat
+	
+	Wave nKtWave = root:nKtWave
+	String wName = "nnDist_" + num2str(ii) + "_" + num2str(cat)
+	Make/O/N=(nKtWave[ii][cat]) $wName
+	Wave nnW = $wName
+	
+	Wave ktCatW = $("ktCat_" + num2str(ii) + "_M0")
+	Wave ktsModW = $("ktsMod_" + num2str(ii) + "_M0")
+	Wave knstrnW = $("knstrn_" + num2str(ii) + "_M0")
+	if(DimSize(knstrnW,0) < 1)
+		nnW[] = -1
+		return -1
+	endif
+	
+	Variable nRows = DimSize(ktCatW,0)
+	Make/O/N=(1,3)/FREE ktMat	// 1 row matrix to hold x y z coords of reference kt
+	
+	Variable i, j = 0
+	
+	for(i = 0; i < nRows; i += 1)
+		if(ktCatW[i][3] == cat)
+			ktMat[0][] = ktsModW[i][10 + q]
+			nnW[j] = Misseg#FindMinMaxOfTwo2DWaves(knstrnW,ktMat,0)
+			j += 1
+		endif
+	endfor
 End
 
 ////////////////////////////////////////////////////////////////////////
@@ -444,4 +513,27 @@ STATIC Function CheckForData(pathName, filePath)
 	while(line < 2)
 	
 	return line	   // return 2 if there was at least 1 data row
+End
+
+STATIC Function GetCategories(w,j)
+	Wave w
+	Variable j
+	
+	Duplicate/FREE/RMD=[][3] w,temp
+	temp[] = (temp[p] == j) ? 1 : 0
+	return sum(temp)
+End
+
+STATIC Function CSVChecker(ii)
+	Variable ii
+	
+	Wave ktCatW = $("ktCat_" + num2str(ii) + "_M0")
+	Wave ktsModW = $("ktsMod_" + num2str(ii) + "_M0")
+	Wave knstrnW = $("knstrn_" + num2str(ii) + "_M0")
+//	Print ii, ":", DimSize(ktCatW,0), DimSize(ktsModW,0),DimSize(knstrnW,0)
+	if(DimSize(ktCatW,0) != DimSize(ktsModW,0))
+		Print ii, ":", DimSize(ktCatW,0), DimSize(ktsModW,0), DimSize(knstrnW,0)
+	endif
+	
+	return 0
 End
