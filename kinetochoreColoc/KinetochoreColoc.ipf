@@ -4,13 +4,29 @@
 #include <ImageSlider>
 #include "Misseg"
 
+// The functions in this file will allow us to analyse the colocalisation between
+// kinetochores (in different classes) and a signal (kinastrin).
+// This is done using Coloc Analysis. Prior to this, the kinetochores are classified using
+// KinetochoreClassification(). This allows the user to specify which spots are kinetochores,
+// which are not and of those that are, what category they are in (plate, misaligned, ensheathed)
+// To do the classification, an RGB image stack is required together with outputs from FIJI.
+// Classification saves a text file in the output folder and the presence of this file tells the
+// program that the file has been classified.
+// For verification, we can open the image again, look at the classification and - if necessary -
+// manually add some points.
+
 ////////////////////////////////////////////////////////////////////////
 // Menu items
 ////////////////////////////////////////////////////////////////////////
+
 Menu "Misseg"
 	Submenu "Kinetochore Coloc"
-		"Classify Kinetochores...", /Q, KinetochoreClassification()
-		"Pick another image", /Q, DisplayUpdatedSelector()
+		Submenu "Classification"
+			"Classify Kinetochores...", /Q, KinetochoreClassification()
+			"Classify another image", /Q, DisplayUpdatedSelector()
+			"Verify Kinetochores...", /Q, KinetochoreVerification()
+			"Verify another image", /Q, DisplayUpdatedSelector()
+		End
 		"Coloc Analysis...", /Q, KinetochoreColoc()
 	End
 End
@@ -19,9 +35,15 @@ End
 ////////////////////////////////////////////////////////////////////////
 // Master functions and wrappers
 ////////////////////////////////////////////////////////////////////////
+
 Function KinetochoreClassification()
 	SetUpFilesToLoad()
-	DisplayUpdatedSelector()
+	DisplayUpdatedSelector(0)
+End
+
+Function KinetochoreVerification()
+	SetUpFilesToLoad()
+	DisplayUpdatedSelector(1)
 End
 
 Function KinetochoreColoc()
@@ -60,7 +82,10 @@ Function SetUpFilesToLoad()
 	NewDataFolder/O root:data
 End
 
-Function DisplayUpdatedSelector()
+///	@param	optVar	0 is classify, 1 is verify
+Function DisplayUpdatedSelector(optVar)
+	Variable optVar
+	
 	SetDataFolder root:
 	if(ItemsInList(PathList("*DiskFolder",";","")) < 2)
 		DoAlert 0, "Please load the file lists first"
@@ -85,8 +110,14 @@ Function DisplayUpdatedSelector()
 	for(i = 0; i < nFiles; i += 1)
 		imgName = StringFromList(i,imgList)
 		originalFileName = ReplaceString(".tif",imgName,"")
-		if(FindListItem(originalFileName + "_ktCat.txt", csvList) >= 0)
-			modImgList = RemoveFromList(imgName,modImgList)
+		if(optVar == 0)
+			if(FindListItem(originalFileName + "_ktCat.txt", csvList) >= 0)
+				modImgList = RemoveFromList(imgName,modImgList)
+			endif
+		else
+			if(FindListItem(originalFileName + "_ktVfy.txt", csvList) >= 0)
+				modImgList = RemoveFromList(imgName,modImgList)
+			endif
 		endif
 	endfor
 	// new number of images to analyse, i.e. to go in listbox
@@ -109,7 +140,7 @@ Function DisplayUpdatedSelector()
 	Make/O/N=(ItemsInList(csvList))/T csvFileList
 	csvFileList[] = w1[p]
 
-	BuildSelectorPanel()
+	BuildSelectorPanel(optVar)
 End
 
 Function LoadCSVFiles()
@@ -171,7 +202,7 @@ Function LoadCSVFiles()
 	ktCatNameWave[] = w0[p]
 	
 	String thisFile,wName
-	Variable err = GetRTError(1)
+	Variable err = GetRTError(1) // can this be deleted
 
 	// now we will load everything in
 	for(i = 0; i < nCatFiles; i += 1)
@@ -219,7 +250,11 @@ Function NNCalcs()
 	
 	for(i = 0; i < nWave; i += 1)
 		wName = "ktCat_" + num2str(i) + "_M0"
-		Wave w0 = $wName
+		Wave/Z w0 = $wName
+		if(!WaveExists(w0))
+			nKtWave[i][] = NaN
+			continue
+		endif
 		nKtWave[i][] = GetCategories(w0,q) // 7th column will be set to 0
 		nKtWave[i][6] = DimSize(w0,0)
 		if((nKtWave[i][0] + nKtWave[i][1] + nKtWave[i][2] + nKtWave[i][3] + nKtWave[i][4] + nKtWave[i][5]) != nKtWave[i][6])
@@ -229,18 +264,63 @@ Function NNCalcs()
 		if(nKtWave[i][0] == nKtWave[i][6])
 			continue
 		else
-			// 10,11,12 are x,y,z in ktsMod (w1) and knstrn (w2)
+			// 10,11,12 are x,y,z in ktsMod and knstrn - units are pixels
+			// Voxel size: 0.0645x0.0645x0.2000 micron^3
+			ScaleTheWaves(i)
 			NNWrapper(i,1)
 			NNWrapper(i,4)
 			NNWrapper(i,5)
 		endif
 	endfor
 	
+	// now collect the measurements
+	String wList = WaveList("nnDist_*_1",";","")
+	Concatenate/O/KILL/NP=0 wList, root:nnDistAll_1
+	WaveTransform zapnans root:nnDistAll_1
+	wList = WaveList("nnDist_*_4",";","")
+	Concatenate/O/KILL/NP=0 wList, root:nnDistAll_4
+	WaveTransform zapnans root:nnDistAll_4
+	wList = WaveList("nnDist_*_5",";","")
+	Concatenate/O/KILL/NP=0 wList, root:nnDistAll_5
+	WaveTransform zapnans root:nnDistAll_5
+	
 	SetDataFolder root:
+	WAVE/Z nnDistAll_1, nnDistAll_4, nnDistAll_5
+	// make histograms
+	Make/N=100/O nnDistAll_1_Hist
+	Histogram/P/B={0,0.1,100} nnDistAll_1,nnDistAll_1_Hist
+	Display/N=p_1_hist nnDistAll_1_Hist
+	Make/N=100/O nnDistAll_4_Hist
+	Histogram/P/B={0,0.1,100} nnDistAll_4,nnDistAll_4_Hist
+	Display/N=p_4_hist nnDistAll_4_Hist
+	Make/N=100/O nnDistAll_5_Hist
+	Histogram/P/B={0,0.1,100} nnDistAll_5,nnDistAll_5_Hist
+	Display/N=p_5_hist nnDistAll_5_Hist
+	
+	PrettifyHistogram(1)
+	PrettifyHistogram(4)
+	PrettifyHistogram(5)
+	Misseg#MakeTheLayouts("p",5,3)
+End
+
+STATIC Function ScaleTheWaves(ii)
+	Variable ii
+	
+	Wave ktCatW = $("ktCat_" + num2str(ii) + "_M0")
+	Wave ktsModW = $("ktsMod_" + num2str(ii) + "_M0")
+	Wave knstrnW = $("knstrn_" + num2str(ii) + "_M0")
+	
+	ktCatW[][0,1] *= 0.0645
+	ktCatW[][2] *= 0.2
+	ktsModW[][10,11] *= 0.0645
+	ktsModW[][12] *= 0.2
+	knstrnW[][10,11] *= 0.0645
+	knstrnW[][12] *= 0.2
+	
 End
 
 STATIC Function NNWrapper(ii,cat)
-	Variable ii,cat
+	Variable ii, cat
 	
 	Wave nKtWave = root:nKtWave
 	String wName = "nnDist_" + num2str(ii) + "_" + num2str(cat)
@@ -257,26 +337,47 @@ STATIC Function NNWrapper(ii,cat)
 	
 	Variable nRows = DimSize(ktCatW,0)
 	Make/O/N=(1,3)/FREE ktMat	// 1 row matrix to hold x y z coords of reference kt
+	Duplicate/O/FREE/RMD=[][10,12] knstrnW, tempknstrn
 	
 	Variable i, j = 0
 	
 	for(i = 0; i < nRows; i += 1)
 		if(ktCatW[i][3] == cat)
 			ktMat[0][] = ktsModW[i][10 + q]
-			nnW[j] = Misseg#FindMinMaxOfTwo2DWaves(knstrnW,ktMat,0)
+			nnW[j] = Misseg#FindMinMaxOfTwo2DWaves(tempknstrn,ktMat,0)
 			j += 1
 		endif
 	endfor
 End
 
+STATIC Function PrettifyHistogram(cat)
+	Variable cat
+	
+	WAVE/Z colorWave
+	if(!WaveExists(colorWave))
+		Make/O/N=(4,6) colorWave={{0.5,0.5,0.5,1},{0.5,0.5,0.5,1},{0,0,0,1},{0,0,0,1},{0,0.9,1,1},{1,0.5,0,1}}
+		colorWave[][] = floor(65535*colorWave[p][q])
+		MatrixTranspose colorWave
+	endif
+	
+	String plotName = "p_" + num2str(cat) + "_hist"
+	SetAxis/W=$plotName bottom 0,10
+	Label/W=$plotName bottom "Nearest Kinastrin (\u03BCm)";DelayUpdate
+	Label/W=$plotName left "Frequency";DelayUpdate
+	SetAxis/W=$plotName/A/N=1 left
+	ModifyGraph/W=$plotName mode=7,hbFill=4,rgb=(colorWave[cat][0],colorWave[cat][1],colorWave[cat][2])
+	
+End	
+
 ////////////////////////////////////////////////////////////////////////
 // Image functions
 ////////////////////////////////////////////////////////////////////////
 
-Function LoadImageAndCSV(thisImg)
+Function LoadImageAndCSV(thisImg,optVar)
 	String thisImg
+	Variable optVar // 0 = classify, 1 = verify
 	
-	//we will store the currentFileName in a textwave in root
+	// we will store the currentFileName in a textwave in root
 	Make/O/N=(1)/T currentFileName
 	Wave/T currentFileName = root:currentFileName
 	SetDataFolder root:data:
@@ -289,11 +390,16 @@ Function LoadImageAndCSV(thisImg)
 	String thisCSV = originalFileName + "_ktsMod.csv"
 	LoadWave/W/A/J/O/K=1/G/L={0,0,0,0,0}/P=csvDiskFolder thisCSV
 	// this doesn't check if thisCSV exists - could cause error
-	GenerateExamineWindow()
+	if(optVar == 1)
+		thisCSV = originalFileName + "_ktCat.csv"
+		LoadWave/O/J/K=1/L={0,1,0,3,1}/N/P=csvDiskFolder/Q thisCSV
+	endif
+	GenerateExamineWindow(optVar)
 End
 
-Function GenerateExamineWindow()
-//	SetDataFolder root:data:
+Function GenerateExamineWindow(optVar)
+	Variable optVar
+	
 	WAVE/Z Image
 	KillWindow/Z examine
 	NewImage/N=examine Image
@@ -303,12 +409,15 @@ Function GenerateExamineWindow()
 	Slider sld, limits={0,DimSize(Image,3)-1,1}, size={400,20},vert=0,proc=ActionProcName
 	WAVE/Z XW, YW, ZW
 	Variable nKts = numpnts(YW)
-	Make/O/N=(nKts) liveXW, liveYW, ktCat
+	Make/O/N=(nKts) liveXW, liveYW
 	Make/O/N=(nKts)/T ktNum = num2str(p + 1)
-	liveXW[] = (floor(ZW[p]) == 0+1) ? XW[p] : NaN
-	liveYW[] = (floor(ZW[p]) == 0+1) ? YW[p] : NaN
-	ktCat[] = 1
-//	Make/O/N=(6,4) colorWave={{0.5,0.99,0,0,0.352941,1},{0.5,0.99,0,0,0.376471,0.443137},{0.5,0.99,0,0,1,0.0941176},{1,1,1,1,1,1}}
+	liveXW[] = (floor(ZW[p]) == 0 + 1) ? XW[p] : NaN
+	liveYW[] = (floor(ZW[p]) == 0 + 1) ? YW[p] : NaN
+	if(optVar == 0)
+		Make/O/N=(nKts) ktCat = 1
+	else
+		WAVE/Z ktCat
+	endif
 	Make/O/N=(4,6) colorWave={{0.5,0.5,0.5,1},{0.99,0.99,0.99,1},{0,0,0,1},{0,0,0,1},{0,0.9,1,1},{1,0.5,0,1}}
 	colorWave[][] = floor(65535*colorWave[p][q])
 	MatrixTranspose colorWave
@@ -356,19 +465,21 @@ End
 // Panel functions
 ////////////////////////////////////////////////////////////////////////
 
-Function BuildSelectorPanel()
-//	DoWindow/F fileSelector	// bring panel to front if it exists
-//	if(V_Flag != 0)
-//		return 0							// panel already exists
-//	endif
+Function BuildSelectorPanel(optVar)
+	Variable optVar
+	
 	KillWindow/Z fileSelector
 	NewPanel/W=(280,56,580,532)/N=fileSelector
 	DefaultGUIFont/W=fileSelector/Mac popup={"_IgorSmall",0,0}
 	ListBox lb1,pos={34,13},size={233,400},frame=2,listWave=root:selectTextWave
 	ListBox lb1,selWave=root:selectedWave, mode= 3,editStyle= 1
 	ListBox lb1,widths= {25,400}
-	
-	Button Classify,pos={34,430},size={130,20},proc=ClassifyButtonProc,title="Classify"
+	if(optVar == 0)
+		Button Classify,pos={34,430},size={130,20},proc=ClassifyButtonProc,title="Classify"
+	else
+		Button Verify,pos={34,430},size={130,20},proc=ClassifyButtonProc,title="Verify"
+	endif
+
 	return 0
 End
 
@@ -388,7 +499,11 @@ Function ClassifyButtonProc(ctrlName) : ButtonControl
 	strswitch(ctrlName)
 		case "Classify" :
 			KillWindow/Z fileSelector
-			LoadImageAndCSV(imgName)
+			LoadImageAndCSV(imgName,0)
+			return 0
+		case "Verify" :
+			KillWindow/Z fileSelector
+			LoadImageAndCSV(imgName,1)
 			return 0
 	endswitch
 End
@@ -402,19 +517,27 @@ Function ktCategoryPanel(nKts)
 	
 	WAVE/Z colorWave, ktCat
 	KillWindow/Z ktCategory
-	NewPanel/N=ktCategory/K=1/W=(0,0,20+140*nCol,150+20*nRow)/HOST=examine/EXT=0
+	NewPanel/N=ktCategory/K=1/W=(0, 0, 20 + 140 * nCol, 150 + 20 * nRow)/HOST=examine/EXT=0
 	// labelling of columns
 	DrawText/W=ktCategory 10,30,"Kinetochore category"
 	// Four buttons
-	Button Skip,pos={10,60+20*nRow},size={130,20},proc=CompleteButtonProc,title="Exit - no save"
-	Button Reset,pos={10,82+20*nRow},size={130,20},proc=CompleteButtonProc,title="Reset kinetochores"
-	Button Pass,pos={10,104+20*nRow},size={130,20},proc=CompleteButtonProc,title="Don't analyse"
-	Button Complete,pos={10,126+20*nRow},fColor=(45489,65535,45489),size={130,20},proc=CompleteButtonProc,title="Complete - save"
+	Button Skip,pos={10, 60 + 20 * nRow},size={130,20},proc=CompleteButtonProc,title="Exit - no save"
+	Button Reset,pos={10, 82 + 20 * nRow},size={130,20},proc=CompleteButtonProc,title="Reset kinetochores"
+	Button Pass,pos={10, 104 + 20 * nRow},size={130,20},proc=CompleteButtonProc,title="Don't analyse"
+	if(optVar == 0)
+		Button Complete,pos={10, 126 + 20 * nRow},fColor=(45489,65535,45489),size={130, 20},proc=CompleteButtonProc,title="Complete - save"
+	else
+		Button Verify,pos={10, 126 + 20 * nRow},fColor=(45489,65535,45489),size={130, 20},proc=CompleteButtonProc,title="Complete - save"
+	endif
 	// add some help
 	Button Skip,help={"Exits the image without saving.\rDo this if you want to take a break."}
 	Button Reset,help={"Reset values of all kinetochores to 1 so that you can start over."}
 	Button Pass,help={"If the image is not a good cell (not at right stage, kinetochores bad etc.)\rclick this so that the image is not analysed."}
-	Button Complete,help={"When you have finished the classification, click here to save.\rImage will not be available for reclassification."}
+	if(optVar == 0)
+		Button Complete,help={"When you have finished the classification, click here to save.\rImage will not be available for reclassification."}
+	else
+		Button Verify,help={"When you have finished verifying the classification, click here to save.\rImage will not be available for verification."}
+	endif
 	// insert rows
 	String boxName0, valname0
 	String list = "Error;Align;Poles;BG;Misalign;Misalign-ER;"
@@ -426,7 +549,7 @@ Function ktCategoryPanel(nKts)
 		j = floor(i / nRow)
 		boxName0 = "box0_" + num2str(i)
 		// row label
-		DrawText/W=ktCategory 10+140*j,68+(mod(i,nRow)*20),num2str(i+1)
+		DrawText/W=ktCategory 10 + 140 * j, 68 + (mod(i, nRow) * 20), num2str(i + 1)
 		// make the popups - thanks to chozo for this code
 		String presetTo = StringFromList(ktCat[i],list)
 		Variable mode = 1 + WhichListItem(presetTo,list) // about the same as 1+ktCat[i]
@@ -483,6 +606,12 @@ Function CompleteButtonProc(ctrlName) : ButtonControl
 			KillWindow/Z examine
 			KillWindow/Z ktCategory
 			return 1
+		case "Verified" :
+			Save/J/P=csvDiskFolder/W XW,YW,ZW,ktCat as txtName
+			Save/J/P=csvDiskFolder/W XW,YW,ZW,ktCat as ReplaceString("ktCat",txtName,"ktVfy")
+			KillWindow/Z examine
+			KillWindow/Z ktCategory
+			return 1
 	endswitch
 End
 
@@ -524,15 +653,26 @@ STATIC Function GetCategories(w,j)
 	return sum(temp)
 End
 
+// this function will check the CSVs match up
 STATIC Function CSVChecker(ii)
 	Variable ii
 	
+	Wave/T ktCatNameWave = root:ktCatNameWave
 	Wave ktCatW = $("ktCat_" + num2str(ii) + "_M0")
 	Wave ktsModW = $("ktsMod_" + num2str(ii) + "_M0")
 	Wave knstrnW = $("knstrn_" + num2str(ii) + "_M0")
-//	Print ii, ":", DimSize(ktCatW,0), DimSize(ktsModW,0),DimSize(knstrnW,0)
 	if(DimSize(ktCatW,0) != DimSize(ktsModW,0))
-		Print ii, ":", DimSize(ktCatW,0), DimSize(ktsModW,0), DimSize(knstrnW,0)
+		Print "Removing", ii, ":", DimSize(ktCatW,0), DimSize(ktsModW,0), DimSize(knstrnW,0), ktCatNameWave[ii]
+		KillWaves ktCatW, ktsModW, knstrnW
+		return 0
+	endif
+	
+	// are the X-coords essentially the same between ktCat and ktsMod?
+	MatrixOp/O/FREE diffW = col(ktCatW,0) - col(ktsModW,10)
+	Variable diffDetect = sum(diffW) / DimSize(diffW,0)
+	
+	if(abs(diffDetect) > 2)
+		Print "x coord diff", num2str(diffDetect), ktCatNameWave[ii]
 	endif
 	
 	return 0
