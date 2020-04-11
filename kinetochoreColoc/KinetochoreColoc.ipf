@@ -2,6 +2,7 @@
 #pragma rtGlobals=3		// Use modern global access method and strict wave access.
 #include <3DWaveDisplay>
 #include <ImageSlider>
+#include <Graph Utility Procs>
 #include "Misseg"
 
 // The functions in this file will allow us to analyse the colocalisation between
@@ -23,9 +24,9 @@ Menu "Misseg"
 	Submenu "Kinetochore Coloc"
 		Submenu "Classification"
 			"Classify Kinetochores...", /Q, KinetochoreClassification()
-			"Classify another image", /Q, DisplayUpdatedSelector()
+			"Classify another image", /Q, DisplayUpdatedSelector(0)
 			"Verify Kinetochores...", /Q, KinetochoreVerification()
-			"Verify another image", /Q, DisplayUpdatedSelector()
+			"Verify another image", /Q, DisplayUpdatedSelector(1)
 		End
 		"Coloc Analysis...", /Q, KinetochoreColoc()
 	End
@@ -201,8 +202,7 @@ Function LoadCSVFiles()
 	Wave/T ktCatNameWave = root:ktCatNameWave
 	ktCatNameWave[] = w0[p]
 	
-	String thisFile,wName
-	Variable err = GetRTError(1) // can this be deleted
+	String thisFile, wName
 
 	// now we will load everything in
 	for(i = 0; i < nCatFiles; i += 1)
@@ -388,11 +388,11 @@ Function LoadImageAndCSV(thisImg,optVar)
 	ImageLoad/P=imgDiskFolder/T=tiff/O/S=0/C=-1/LR3D/Q/N=image thisImg
 	// load csv file
 	String thisCSV = originalFileName + "_ktsMod.csv"
-	LoadWave/W/A/J/O/K=1/G/L={0,0,0,0,0}/P=csvDiskFolder thisCSV
+	LoadWave/W/A/J/O/K=1/L={0,0,0,0,0}/P=csvDiskFolder/Q thisCSV
 	// this doesn't check if thisCSV exists - could cause error
 	if(optVar == 1)
-		thisCSV = originalFileName + "_ktCat.csv"
-		LoadWave/O/J/K=1/L={0,1,0,3,1}/N/P=csvDiskFolder/Q thisCSV
+		thisCSV = originalFileName + "_ktCat.txt"
+		LoadWave/O/W/A/J/K=1/L={0,1,0,3,1}/N/P=csvDiskFolder/Q thisCSV
 	endif
 	GenerateExamineWindow(optVar)
 End
@@ -428,7 +428,7 @@ Function GenerateExamineWindow(optVar)
 	AppendToGraph/T/W=examine liveYW/TN=ktlabels vs liveXW
 	ModifyGraph/W=examine mode(ktlabels)=3,textMarker(ktlabels)={ktNum,"default",0,0,2,-2.50,2.50}
 	ModifyGraph/W=examine rgb(ktlabels)=(65535,65535,65535,49151)
-	ktCategoryPanel(nKts)
+	ktCategoryPanel(nKts,optVar)
 	return 0
 End
 
@@ -509,25 +509,26 @@ Function ClassifyButtonProc(ctrlName) : ButtonControl
 End
 
 ///	@param	nKts	number of kinetochores
-Function ktCategoryPanel(nKts)
-	Variable nKts
-	// 30 rows, so how many columns
-	Variable nRow = 30
+///	@param	optVar	0 = classify, 1 = verify
+Function ktCategoryPanel(nKts, optVar)
+	Variable nKts, optVar
+	// 28 rows, so how many columns
+	Variable nRow = 28
 	Variable nCol = ceil(nKts / nRow)
 	
 	WAVE/Z colorWave, ktCat
 	KillWindow/Z ktCategory
-	NewPanel/N=ktCategory/K=1/W=(0, 0, 20 + 140 * nCol, 150 + 20 * nRow)/HOST=examine/EXT=0
+	NewPanel/N=ktCategory/K=1/W=(0, 0, 20 + 140 * nCol, 190 + 20 * nRow)/HOST=examine/EXT=0
 	// labelling of columns
 	DrawText/W=ktCategory 10,30,"Kinetochore category"
 	// Four buttons
-	Button Skip,pos={10, 60 + 20 * nRow},size={130,20},proc=CompleteButtonProc,title="Exit - no save"
-	Button Reset,pos={10, 82 + 20 * nRow},size={130,20},proc=CompleteButtonProc,title="Reset kinetochores"
-	Button Pass,pos={10, 104 + 20 * nRow},size={130,20},proc=CompleteButtonProc,title="Don't analyse"
+	Button Skip,pos={10, 100 + 20 * nRow},size={130,20},proc=CompleteButtonProc,title="Exit - no save"
+	Button Reset,pos={10, 122 + 20 * nRow},size={130,20},proc=CompleteButtonProc,title="Reset kinetochores"
+	Button Pass,pos={10, 144 + 20 * nRow},size={130,20},proc=CompleteButtonProc,title="Don't analyse"
 	if(optVar == 0)
-		Button Complete,pos={10, 126 + 20 * nRow},fColor=(45489,65535,45489),size={130, 20},proc=CompleteButtonProc,title="Complete - save"
+		Button Complete,pos={10, 166 + 20 * nRow},fColor=(45489,65535,45489),size={130, 20},proc=CompleteButtonProc,title="Complete - save"
 	else
-		Button Verify,pos={10, 126 + 20 * nRow},fColor=(45489,65535,45489),size={130, 20},proc=CompleteButtonProc,title="Complete - save"
+		Button Verify,pos={10, 166 + 20 * nRow},fColor=(45489,65535,45489),size={130, 20},proc=CompleteButtonProc,title="Complete - save"
 	endif
 	// add some help
 	Button Skip,help={"Exits the image without saving.\rDo this if you want to take a break."}
@@ -537,6 +538,10 @@ Function ktCategoryPanel(nKts)
 		Button Complete,help={"When you have finished the classification, click here to save.\rImage will not be available for reclassification."}
 	else
 		Button Verify,help={"When you have finished verifying the classification, click here to save.\rImage will not be available for verification."}
+	endif
+	// optional button for verify workflow
+	if(optVar == 1)
+		Button Add,pos={10, 68 + 20 * nRow},fColor=(65535,45489,45489),size={130, 20},proc=CompleteButtonProc,title="Add more"
 	endif
 	// insert rows
 	String boxName0, valname0
@@ -593,7 +598,7 @@ Function CompleteButtonProc(ctrlName) : ButtonControl
 			return 0
 		case "Reset" :
 			ktCat[] = 1
-			ktCategoryPanel(numpnts(ktCat))
+			ktCategoryPanel(numpnts(ktCat),0)
 			break	
 		case "Pass" :
 			ktCat[] = 0
@@ -612,9 +617,65 @@ Function CompleteButtonProc(ctrlName) : ButtonControl
 			KillWindow/Z examine
 			KillWindow/Z ktCategory
 			return 1
+		case "Add" :
+			GenerateNewKTPanel()
+			return 0
 	endswitch
 End
 
+Function GenerateNewKtPanel()
+	WAVE/Z image
+	Cursor/I/W=examine/C=(65535,65535,65535) A image floor(DimSize(image,0) / 2),floor(DimSize(image,1) / 2)
+	WAVE/Z colorWave, ktCat
+	KillWindow/Z newKt
+	NewPanel/N=newKt/K=1/W=(200, 300, 0, 0)/HOST=examine/EXT=1
+	DrawText/W=newKt 10,30,"New Kinetochore:"
+	DrawText/W=newKt 10,50,"1. Move crosshairs to kinetochore"
+	DrawText/W=newKt 10,70,"2. Select correct z-slice"
+	DrawText/W=newKt 10,90,"3. Press red button"
+	DrawText/W=newKt 10,110,"Then classify and repeat as needed"
+	// Red button
+	Button Extra,pos={10, 140},size={180,20},fColor=(65535,16383,16383),proc=AddButtonProc,title="Add kinetochore"
+	Button CloseIt,pos={10, 170},size={180,20},proc=AddButtonProc,title="Cancel"
+	return 0
+End
+
+Function AddButtonProc(ctrlName) : ButtonControl
+	String ctrlName
+ 	
+ 	Variable xVal = pcsr(A, "examine")
+ 	Variable yVal = qcsr(A, "examine")
+ 	Variable zVal = cursorLayer("examine","A")
+	
+	strswitch(ctrlName)
+		case "Extra" :
+			InsertNewKinetochore(xVal,yVal,zVal)
+			// remove cursor
+			Cursor/K/W=examine A
+			KillWindow/Z newKt
+			return 1
+		case "CloseIt" :
+			KillWindow/Z newKt
+			return 1	
+	endswitch
+End
+
+STATIC Function InsertNewKinetochore(xx,yy,zz)
+	Variable xx, yy, zz
+	
+	WAVE/Z XW, YW, ZW, ktCat, liveXW, liveYW
+	InsertPoints/V=0 numpnts(ktCat), 1, ktCat
+	InsertPoints/V=(xx) numpnts(XW), 1, XW
+	InsertPoints/V=(yy) numpnts(YW), 1, YW
+	InsertPoints/V=(zz) numpnts(ZW), 1, ZW
+	InsertPoints/V=(xx) numpnts(liveXW), 1, liveXW
+	InsertPoints/V=(yy) numpnts(liveYW), 1, liveYW
+	// also need to add a point to the end of the label wave
+	Make/O/N=(numpnts(ktCat))/T ktNum = num2str(p + 1)
+	ktCategoryPanel(numpnts(ktCat),1)
+
+	return 0
+End
 
 ////////////////////////////////////////////////////////////////////////
 // Utility functions
@@ -677,3 +738,26 @@ STATIC Function CSVChecker(ii)
 	
 	return 0
 End
+
+// modified from https://www.wavemetrics.com/forum/general/getting-plane-displayed-cursors
+Function cursorLayer(graphname, csrname)
+    String graphname, csrname
+    
+    if (strlen(graphname) == 0)
+        graphname = winName(0,1)
+    endif
+    
+    String info = CsrInfo($csrname, graphname)
+    if (strlen(info) == 0)
+        return NAN
+    endif
+    String tracename = StringByKey("TNAME", info)
+    info = ImageInfo(graphname, tracename,0)
+    if (strlen(info) == 0)
+        return NAN
+    endif
+    String planestr = WMGetRECREATIONInfoByKey("plane", info)
+    Variable value = strlen(planestr) == 0 ? NAN : str2num(planestr)
+    
+    return value
+end
