@@ -602,20 +602,21 @@ Function CompleteButtonProc(ctrlName) : ButtonControl
 			break	
 		case "Pass" :
 			ktCat[] = 0
-			Save/J/P=csvDiskFolder/W XW,YW,ZW,ktCat as txtName
+			Save/O/J/P=csvDiskFolder/W XW,YW,ZW,ktCat as txtName
 			KillWindow/Z examine
 			KillWindow/Z ktCategory
 			return 1	
 		case "Complete" :
-			Save/J/P=csvDiskFolder/W XW,YW,ZW,ktCat as txtName
+			Save/O/J/P=csvDiskFolder/W XW,YW,ZW,ktCat as txtName
 			KillWindow/Z examine
 			KillWindow/Z ktCategory
 			return 1
-		case "Verified" :
-			Save/J/P=csvDiskFolder/W XW,YW,ZW,ktCat as txtName
-			Save/J/P=csvDiskFolder/W XW,YW,ZW,ktCat as ReplaceString("ktCat",txtName,"ktVfy")
+		case "Verify" :
+			Save/O/J/P=csvDiskFolder/W XW,YW,ZW,ktCat as txtName
+			Save/O/J/P=csvDiskFolder/W XW,YW,ZW,ktCat as ReplaceString("ktCat",txtName,"ktVfy")
 			KillWindow/Z examine
 			KillWindow/Z ktCategory
+			DisplayUpdatedSelector(1)
 			return 1
 		case "Add" :
 			GenerateNewKTPanel()
@@ -655,6 +656,7 @@ Function AddButtonProc(ctrlName) : ButtonControl
 			KillWindow/Z newKt
 			return 1
 		case "CloseIt" :
+			Cursor/K/W=examine A
 			KillWindow/Z newKt
 			return 1	
 	endswitch
