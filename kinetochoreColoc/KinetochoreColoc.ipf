@@ -156,17 +156,18 @@ Function LoadCSVFiles()
 	Make/O/N=2/T pathWave
 	pathWave[1] = "" // do this for consistency with previous code
 	
-	// each image has four text files
+	// each image has four or five text files
 	// 1 ktsMod.csv
 	// 2 knstrn.csv
 	// 3 ktCat.txt
 	// 4 log.txt
-	// we need the first 3 and not the 4th
+	// 5 ktVfy.txt (copy of ktCat after verification)
+	// we need 2 and 3 only
 	
 	// first run a check on all the files
 	String fileList = IndexedFile(csvDiskFolder,-1,"TEXT")
-	if (ItemsInList(fileList) < 3)
-		DoAlert 0, "Found less than three text files"
+	if (ItemsInList(fileList) < 2)
+		DoAlert 0, "Found less than two text files"
 		return -1
 	endif
 	Variable nFiles = ItemsInList(fileList)
@@ -174,9 +175,8 @@ Function LoadCSVFiles()
 	Variable nCatFiles = ItemsInList(ktCatList)
 		
 	Print "Checking categorisation files:", nCatFiles, "found."
-	Print "There should be", ItemsInList(ListMatch(fileList,"*_ktsMod.csv"))
 	
-	// check and then load valid triplets
+	// check and then load valid file pairs
 	String fileName, originalFileName
 	String validKtCatList = ktCatList
 	
@@ -185,10 +185,6 @@ Function LoadCSVFiles()
 	for(i = 0; i < nCatFiles; i += 1)
 		fileName = StringFromList(i,ktCatList)
 		originalFileName = ReplaceString("_ktCat.txt",fileName,"")
-		if(FindListItem(originalFileName + "_ktsMod.csv", fileList) == -1)
-			Print originalFileName, "missing ktsMod file"
-			validKtCatList = RemoveFromList(fileName, validKtCatList)
-		endif
 		if(FindListItem(originalFileName + "_knstrn.csv", fileList) == -1)
 			Print originalFileName, "missing knstrn file"
 			validKtCatList = RemoveFromList(fileName, validKtCatList)
@@ -204,7 +200,7 @@ Function LoadCSVFiles()
 	
 	String thisFile, wName
 
-	// now we will load everything in
+	// now we will load each pair in
 	for(i = 0; i < nCatFiles; i += 1)
 		fileName = ktCatNameWave[i]
 		thisFile = fileName
@@ -216,14 +212,6 @@ Function LoadCSVFiles()
 		endif
 		
 		originalFileName = ReplaceString("_ktCat.txt",fileName,"")
-		thisfile = originalFileName + "_ktsMod.csv"
-		wName = "ktsMod_" + num2str(i) + "_M"
-		if(CheckForData("csvDiskFolder", thisFile) > 1)
-			LoadWave/M/O/J/K=1/L={0,1,0,0,0}/P=csvDiskFolder/A=$wName/Q thisFile
-		else
-			Make/O/N=(1,25) $(wName + "0")
-		endif
-		
 		thisfile = originalFileName + "_knstrn.csv"
 		wName = "knstrn_" + num2str(i) + "_M"
 		if(CheckForData("csvDiskFolder", thisFile) > 1)
@@ -231,7 +219,6 @@ Function LoadCSVFiles()
 		else
 			Make/O/N=(1,25) $(wName + "0")
 		endif
-		CSVChecker(i)
 	endfor
 	
 	SetDataFolder root:	
@@ -241,6 +228,7 @@ Function NNCalcs()
 	Wave/Z/T ktCatNameWave = root:ktCatNameWave
 	Variable nWave = numpnts(ktCatNameWave)
 	
+	// this wave will hold information about each cell (row)
 	Make/O/N=(nWave,7) root:nKtWave
 	Wave nKtWave = root:nKtWave
 	String wName
@@ -255,8 +243,11 @@ Function NNCalcs()
 			nKtWave[i][] = NaN
 			continue
 		endif
+		// fill out how many kts of each category there are for this cell (row)
 		nKtWave[i][] = GetCategories(w0,q) // 7th column will be set to 0
+		// column 6 is the total
 		nKtWave[i][6] = DimSize(w0,0)
+		// check that the totals tally
 		if((nKtWave[i][0] + nKtWave[i][1] + nKtWave[i][2] + nKtWave[i][3] + nKtWave[i][4] + nKtWave[i][5]) != nKtWave[i][6])
 			Print "dataset", i, "mismatch in classification"
 		endif
@@ -265,6 +256,7 @@ Function NNCalcs()
 			continue
 		else
 			// 10,11,12 are x,y,z in ktsMod and knstrn - units are pixels
+			// 0,1,2 are x,y,z in ktCat and ktVfy - units are pixels
 			// Voxel size: 0.0645x0.0645x0.2000 micron^3
 			ScaleTheWaves(i)
 			NNWrapper(i,1)
@@ -288,32 +280,35 @@ Function NNCalcs()
 	WAVE/Z nnDistAll_1, nnDistAll_4, nnDistAll_5
 	// make histograms
 	Make/N=100/O nnDistAll_1_Hist
-	Histogram/P/B={0,0.1,100} nnDistAll_1,nnDistAll_1_Hist
+	Histogram/B={0,0.1,100} nnDistAll_1,nnDistAll_1_Hist
 	Display/N=p_1_hist nnDistAll_1_Hist
 	Make/N=100/O nnDistAll_4_Hist
-	Histogram/P/B={0,0.1,100} nnDistAll_4,nnDistAll_4_Hist
+	Histogram/B={0,0.1,100} nnDistAll_4,nnDistAll_4_Hist
 	Display/N=p_4_hist nnDistAll_4_Hist
 	Make/N=100/O nnDistAll_5_Hist
-	Histogram/P/B={0,0.1,100} nnDistAll_5,nnDistAll_5_Hist
+	Histogram/B={0,0.1,100} nnDistAll_5,nnDistAll_5_Hist
 	Display/N=p_5_hist nnDistAll_5_Hist
-	
-	PrettifyHistogram(1)
-	PrettifyHistogram(4)
 	PrettifyHistogram(5)
+	PrettifyHistogram(4)
+	PrettifyHistogram(1)
 	Misseg#MakeTheLayouts("p",5,3)
+	
+	Extract/FREE/O nnDistAll_1, tempW, nnDistAll_1 <= 0.6
+	Print "There were", numpnts(nnDistAll_1), "aligned kts.", numpnts(tempW), "had kinastrin signal within 600 nm.", (numpnts(tempW) / numpnts(nnDistAll_1) ) * 100, "%"
+	Extract/FREE/O nnDistAll_4, tempW, nnDistAll_4 <= 0.6
+	Print "There were", numpnts(nnDistAll_4), "misaligned kts.", numpnts(tempW), "had kinastrin signal within 600 nm.", (numpnts(tempW) / numpnts(nnDistAll_4) ) * 100, "%"
+	Extract/FREE/O nnDistAll_5, tempW, nnDistAll_5 <= 0.6
+	Print "There were", numpnts(nnDistAll_5), "misaligned-ensheathed kts.", numpnts(tempW), "had kinastrin signal within 600 nm.", (numpnts(tempW) / numpnts(nnDistAll_5) ) * 100, "%"
 End
 
 STATIC Function ScaleTheWaves(ii)
 	Variable ii
 	
 	Wave ktCatW = $("ktCat_" + num2str(ii) + "_M0")
-	Wave ktsModW = $("ktsMod_" + num2str(ii) + "_M0")
 	Wave knstrnW = $("knstrn_" + num2str(ii) + "_M0")
 	
 	ktCatW[][0,1] *= 0.0645
 	ktCatW[][2] *= 0.2
-	ktsModW[][10,11] *= 0.0645
-	ktsModW[][12] *= 0.2
 	knstrnW[][10,11] *= 0.0645
 	knstrnW[][12] *= 0.2
 	
@@ -328,7 +323,6 @@ STATIC Function NNWrapper(ii,cat)
 	Wave nnW = $wName
 	
 	Wave ktCatW = $("ktCat_" + num2str(ii) + "_M0")
-	Wave ktsModW = $("ktsMod_" + num2str(ii) + "_M0")
 	Wave knstrnW = $("knstrn_" + num2str(ii) + "_M0")
 	if(DimSize(knstrnW,0) < 1)
 		nnW[] = -1
@@ -343,7 +337,7 @@ STATIC Function NNWrapper(ii,cat)
 	
 	for(i = 0; i < nRows; i += 1)
 		if(ktCatW[i][3] == cat)
-			ktMat[0][] = ktsModW[i][10 + q]
+			ktMat[0][] = ktCatW[i][q]
 			nnW[j] = Misseg#FindMinMaxOfTwo2DWaves(tempknstrn,ktMat,0)
 			j += 1
 		endif
@@ -359,12 +353,13 @@ STATIC Function PrettifyHistogram(cat)
 		colorWave[][] = floor(65535*colorWave[p][q])
 		MatrixTranspose colorWave
 	endif
-	
+		
 	String plotName = "p_" + num2str(cat) + "_hist"
-	SetAxis/W=$plotName bottom 0,10
-	Label/W=$plotName bottom "Nearest Kinastrin (\u03BCm)";DelayUpdate
-	Label/W=$plotName left "Frequency";DelayUpdate
+	// we're only interested in a 2 micron vicinity
+	SetAxis/W=$plotName bottom 0,2
 	SetAxis/W=$plotName/A/N=1 left
+	Label/W=$plotName bottom "Nearest Kinastrin (\u03BCm)"
+	Label/W=$plotName left "Frequency"
 	ModifyGraph/W=$plotName mode=7,hbFill=4,rgb=(colorWave[cat][0],colorWave[cat][1],colorWave[cat][2])
 	
 End	
@@ -716,31 +711,6 @@ STATIC Function GetCategories(w,j)
 	return sum(temp)
 End
 
-// this function will check the CSVs match up
-STATIC Function CSVChecker(ii)
-	Variable ii
-	
-	Wave/T ktCatNameWave = root:ktCatNameWave
-	Wave ktCatW = $("ktCat_" + num2str(ii) + "_M0")
-	Wave ktsModW = $("ktsMod_" + num2str(ii) + "_M0")
-	Wave knstrnW = $("knstrn_" + num2str(ii) + "_M0")
-	if(DimSize(ktCatW,0) != DimSize(ktsModW,0))
-		Print "Removing", ii, ":", DimSize(ktCatW,0), DimSize(ktsModW,0), DimSize(knstrnW,0), ktCatNameWave[ii]
-		KillWaves ktCatW, ktsModW, knstrnW
-		return 0
-	endif
-	
-	// are the X-coords essentially the same between ktCat and ktsMod?
-	MatrixOp/O/FREE diffW = col(ktCatW,0) - col(ktsModW,10)
-	Variable diffDetect = sum(diffW) / DimSize(diffW,0)
-	
-	if(abs(diffDetect) > 2)
-		Print "x coord diff", num2str(diffDetect), ktCatNameWave[ii]
-	endif
-	
-	return 0
-End
-
 // modified from https://www.wavemetrics.com/forum/general/getting-plane-displayed-cursors
 Function cursorLayer(graphname, csrname)
     String graphname, csrname
@@ -754,7 +724,7 @@ Function cursorLayer(graphname, csrname)
         return NAN
     endif
     String tracename = StringByKey("TNAME", info)
-    info = ImageInfo(graphname, tracename,0)
+    info = ImageInfo(graphname, tracename, 0)
     if (strlen(info) == 0)
         return NAN
     endif
