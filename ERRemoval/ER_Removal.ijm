@@ -7,11 +7,19 @@
 
 macro "ER Volume Measurements"	{
 	dir = getDirectory("Choose a Directory ");
-	list = getFileList(dir);
+
 	setBatchMode(true);
-	
-	for (i = 0; i < list.length; i ++)	{
-		inputPath = dir+list[i];
+	processFolder(dir);	
+	setBatchMode(false);
+}
+
+function processFolder(inputStr) {
+	list = getFileList(inputStr);
+	list = Array.sort(list);
+	for (i = 0; i < list.length; i++) {
+		inputPath = inputStr + list[i];
+		if (File.isDirectory(inputPath))
+			processFolder(inputPath);
 		if (endsWith(inputPath, ".tif") || endsWith(inputPath, ".tiff")) {
 			if (endsWith(inputPath, "mask.tif")) {
 				continue;
@@ -20,7 +28,6 @@ macro "ER Volume Measurements"	{
 			segmentAndMeasure();
 		}
 	}
-	setBatchMode(false);
 }
 
 function segmentAndMeasure()	{
@@ -32,11 +39,25 @@ function segmentAndMeasure()	{
 	inputTitle = getTitle();
 	dir = getInfo("image.directory");
 	fName = getInfo("image.filename");
-	fPath = dir + File.separator + fName;
+	fPath = dir + fName;
 	resultBaseName = File.getNameWithoutExtension(fPath);
-	fPath = dir + File.separator + resultBaseName; // now set this as image path without extension (for appending)
+	fPath = dir + resultBaseName; // now set this as image path without extension (for appending)
+
+	// earlier files used channels 1 and 2, later ones, 2 and 3
+	// if channels are fixed for the dataset alter the string in duplicate
+	pDir = substring(dir, 0, lengthOf(dir)-2); // remove trailing /
+	pDir = substring(pDir, lastIndexOf(pDir, "/"));
+	dateString = substring(pDir, 1, 9);
+	print(dateString);
+	theDate = parseFloat(dateString);
 	
-	run("Duplicate...", "title=tempImg duplicate channels=1-2");
+	if (theDate < 20200927) {
+		chRange = "1-2";
+	} else {
+		chRange = "2-3";
+	}
+	
+	run("Duplicate...", "title=tempImg duplicate channels=" + chRange);
 	tempTitle = "tempImg";
 	// close original image
 	selectImage(inputId);
