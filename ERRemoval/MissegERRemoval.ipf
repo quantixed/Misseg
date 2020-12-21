@@ -10,37 +10,86 @@
 ////////////////////////////////////////////////////////////////////////
 Menu "Misseg"
 	Submenu "ER Removal"
-		"Analyse Removal...", ERAnalysis()
+		"Analyse Removal...", ERAnalysis(0)
+		"Analyse Removal Multilevel...", ERAnalysis(1)
 	End
 End
 
 ////////////////////////////////////////////////////////////////////////
 // Master functions and wrappers
 ////////////////////////////////////////////////////////////////////////
-Function ERAnalysis()
+Function ERAnalysis(opt)
+	Variable opt
 	CleanSlate()
-	ERPreLoader()
+	ERPreLoader(opt)
 End
 
 ////////////////////////////////////////////////////////////////////////
 // Main functions
 ////////////////////////////////////////////////////////////////////////
-Function ERPreLoader()
+Function ERPreLoader(opt)
+	Variable opt
+	
 	NewPath/O/Q/M="Please find folder with measurement files" expDiskFolder1
 	if (V_flag != 0)
 		DoAlert 0, "Disk folder error"
 		return -1
 	endif
-	String FileList1 = IndexedFile(expDiskFolder1,-1,".txt")
-	if(ItemsInList(FileList1) == 0)
-		DoAlert 0, "No txt files found"
-		return -1
-	endif
-	Wave/T fileName1Wave = ListToTextWave(FileList1,";")
-	MoveWave fileName1Wave, root:fileName1Wave
+	String FileList1
+	
+	if (opt == 0)
+		// this option assumes all files are in the top folder (expDiskFolder1)
+		FileList1 = IndexedFile(expDiskFolder1,-1,".txt")
+		if(ItemsInList(FileList1) == 0)
+			DoAlert 0, "No txt files found"
+			return -1
+		endif
+		Wave/T fileName1Wave = ListToTextWave(FileList1,";")
+		MoveWave fileName1Wave, root:fileName1Wave
+		LoadMeasurements(fileName1Wave, "expDiskFolder1", "data", 9, 2, 3, 0.0649645943)
+	elseif (opt == 1)
+		// this option assumes all files are in subfolders in (expDiskFolder1)
+		// it assumes that there are one or more condition folders each containing exp folders
+		// files are in experiment folders
+		PathInfo /S expDiskFolder1
+		String topDiskFolderName = S_path
 		
-	LoadMeasurements(fileName1Wave, "expDiskFolder1", "data", 9, 2, 3, 0.0649645943)
-	DoCalcs()
+		String dirList = IndexedDir(expDiskFolder1,-1,0)
+		Variable nDirs = ItemsInList(dirList)
+		
+		Variable dirLoop, subDirLoop, fileLoop, nSubDirs, nFiles
+		String condDiskFolderName, condDataFolderName
+		String expDiskFolderName
+		String subDirList, tmplist
+		
+		// need to make root:data: first
+		NewDataFolder/O root:data
+		
+		for (DirLoop = 0; DirLoop < nDirs; DirLoop += 1)
+			fileList1 = ""
+			condDiskFolderName = StringFromList(dirLoop, dirList) // something like "wt"
+			// now we need to get the experiment folders within the condition data folder
+			condDiskFolderName = topDiskFolderName + condDiskFolderName + ":"
+			NewPath/O/Q condDiskFolder, condDiskFolderName
+			subDirList = IndexedDir(condDiskFolder,-1,0)
+			nSubDirs = ItemsInList(subDirList)
+			// find txt files in each subdir
+			for (subDirLoop = 0; subDirLoop < nSubDirs; subDirLoop += 1)
+				expDiskFolderName = StringFromList(subDirLoop, subDirList)
+				expDiskFolderName = condDiskFolderName + expDiskFolderName + ":"
+				NewPath/O/Q expDiskFolder, expDiskFolderName
+				tmpList = IndexedFile(expDiskFolder,-1,".txt")
+				nFiles = ItemsInList(tmpList)
+				for (fileLoop = 0; fileLoop < nFiles; fileLoop += 1)
+					fileList1 += expDiskFolderName + ":" + StringFromList(fileLoop, tmpList) + ";"
+				endfor
+			endfor
+			Wave/T fileName1Wave = ListToTextWave(FileList1,";")
+			condDataFolderName = "data:" + StringFromList(dirLoop, dirList)
+			LoadMeasurements(fileName1Wave, "expDiskFolder1", condDataFolderName, 9, 2, 3, 0.0649645943)
+			MoveWave fileName1Wave, $("root:fileNameWave_" + StringFromList(dirLoop, dirList))
+		endfor
+	endif
 End
 
 Function LoadMeasurements(fWaveToLoad, pathNameString, folderString, zMax, zStep, tStep, pxSize)
@@ -73,7 +122,6 @@ Function LoadMeasurements(fWaveToLoad, pathNameString, folderString, zMax, zStep
 		endfor
 		// now find the maximum frame number
 		MatrixOp/O/FREE theTime = col(matA,9)
-		Wave tehTime
 		maxT = WaveMax(theTime)
 		matRow = DimSize(matA,0)
 		// make some waves to hold volume data for this cell
