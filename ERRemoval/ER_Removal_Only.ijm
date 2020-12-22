@@ -65,7 +65,7 @@ function segmentAndMeasure()	{
 	Stack.setFrame(floor(frames / 2));
 	Stack.setSlice(floor(slices / 2));
 	setAutoThreshold("Shanbhag dark no-reset");
-	run("Convert to Mask", "method=Shanbhag background=Dark calculate");
+	run("Convert to Mask", "method=Shanbhag background=Dark");
 
 	run("Set Measurements...", "area mean standard min integrated stack redirect=tempCh1 decimal=3");
 	run("Clear Results");
