@@ -22,6 +22,8 @@ Function ERAnalysis(opt)
 	Variable opt
 	CleanSlate()
 	ERPreLoader(opt)
+	GraphAll()
+	MakeTheLayouts("p_",5,2, rev = 1, saveIt = 0)
 End
 
 ////////////////////////////////////////////////////////////////////////
@@ -125,13 +127,13 @@ Function LoadMeasurements(fWaveToLoad, pathNameString, folderString, zMax, zStep
 		maxT = WaveMax(theTime)
 		matRow = DimSize(matA,0)
 		// make some waves to hold volume data for this cell
-		Make/O/N=(maxT + 1)/D $("cellVol_" + num2str(i)), $("ERVol_" + num2str(i))
+		Make/O/N=(maxT)/D $("cellVol_" + num2str(i)), $("ERVol_" + num2str(i))
 		Wave cellW = $("cellVol_" + num2str(i))
 		Wave erW = $("ERVol_" + num2str(i))
 		
-		for (j = 0; j < maxT + 1; j += 1)
+		for (j = 0; j < maxT; j += 1)
 			Make/O/N=(matRow)/FREE index
-			index[] = (theTime[p] == j) ? p : NaN 
+			index[] = (theTime[p] == j + 1) ? p : NaN 
 			Wavetransform zapNaNs index
 			if(numpnts(index) == 0)
 				cellW[j] = 0
@@ -144,12 +146,85 @@ Function LoadMeasurements(fWaveToLoad, pathNameString, folderString, zMax, zStep
 				cellW[j] = (sum(theArea)) * zStep
 			endif
 		endfor
+		SetScale/P x 0,tStep,"", erW
+		SetScale/P x 0,tStep,"", cellW
 		MatrixOp/O $("volRatio_" + num2str(i)) = erW / cellW
-		
+		SetScale/P x 0,tStep,"", $("volRatio_" + num2str(i))
 	endfor
 	SetDataFolder root:
 End
 
+Function GraphAll()
+	// this is a wrapper
+	GraphThem("p_cell_","cellVol_*","Cell Volume")
+	GraphThem("p_er_","ERVol_*","ER Volume")
+	GraphThem("p_ratio_","volRatio_*","ER Ratio")
+	NormaliseThem()
+	GraphThem("p_ncell_","cellVol_*_n","Cell Volume (normalized)")
+	GraphThem("p_ner_","ERVol_*_n","ER Volume (normalized)")
+	GraphThem("p_nratio_","volRatio_*_n","ER Ratio (normalized)")
+End
+
+Function GraphThem(plotName,wavesearch,yLab)
+	String plotName, wavesearch, yLab
+	SetDataFolder root:data
+	
+	DFREF dfr = GetDataFolderDFR()
+	Variable allItems = CountObjectsDFR(dfr, 4)
+	MakeColorWave(allItems, "colorWave", alpha = round(65535 / 2))
+	Wave/Z colorWave = root:colorWave
+	
+	String dfName, wList, thisPlotName, wName
+	Variable nWaves
+	Variable i,j
+	
+	for(i = 0; i < allItems; i += 1)
+		dfName = GetIndexedObjNameDFR(dfr, 4, i)
+		SetDataFolder $("root:data:" + dfName)
+		thisPlotName = plotName + dfName
+		wList = WaveList(wavesearch,";","")
+		nWaves = ItemsInList(wList)
+		Display/N=$thisPlotName/HIDE=1
+		for(j = 0; j < nWaves; j += 1)
+			wName = StringFromList(j,wList)
+			AppendToGraph/W=$thisPlotName $wName
+		endfor
+		SetAxis/A/N=1/E=1/W=$thisPlotName left
+		Label/W=$thisPlotName left yLab
+		Label/W=$thisPlotName bottom "Time (min)"
+		ModifyGraph/W=$thisPlotName rgb=(colorWave[i][0],colorWave[i][1],colorWave[i][2],colorWave[i][3])
+		ModifyGraph/W=$thisPlotName margin(left)=54
+	endfor
+	SetDataFolder root:
+End
+
+Function NormaliseThem()
+	SetDataFolder root:data
+	
+	DFREF dfr = GetDataFolderDFR()
+	Variable allItems = CountObjectsDFR(dfr, 4)
+	
+	String dfName, wList, wName, newWName
+	Variable nWaves
+	Variable i,j
+	
+	for(i = 0; i < allItems; i += 1)
+		dfName = GetIndexedObjNameDFR(dfr, 4, i)
+		SetDataFolder $("root:data:" + dfName)
+		wList = WaveList("*",";","")
+		wList = RemoveFromList(WaveList("mat*",";",""),wList)
+		nWaves = ItemsInList(wList)
+		for(j = 0; j < nWaves; j += 1)
+			wName = StringFromList(j,wList)
+			Wave w0 = $wName
+			newWName = wName + "_n"
+			Duplicate/O w0 $newWName
+			Wave w1 = $newWName
+			w1[] = w0[p] / w0[0]
+		endfor
+	endfor
+	SetDataFolder root:
+End
 
 ////////////////////////////////////////////////////////////////////////
 // Utility functions
