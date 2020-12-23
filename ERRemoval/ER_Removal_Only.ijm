@@ -59,7 +59,7 @@ function segmentAndMeasure()	{
 	run("Convert to Mask", "method=Shanbhag background=Dark calculate");
 	// get rid of stray pixels
 	run("Open", "stack");
-
+	
 	// select stargazin channel, find mid point
 	selectWindow("tempCh1");
 	Stack.setFrame(floor(frames / 2));
@@ -67,25 +67,23 @@ function segmentAndMeasure()	{
 	setAutoThreshold("Shanbhag dark no-reset");
 	run("Convert to Mask", "method=Shanbhag background=Dark");
 
+	// now do analyze particles
+	selectWindow("tempCh2");
+	roiManager("reset");
+	run("Analyze Particles...", "size=150-Infinity pixel display clear add stack");
+	roiManager("Show None");
+	saveAs("results", fPath + "_AP.txt");
+
 	run("Set Measurements...", "area mean standard min integrated stack redirect=tempCh1 decimal=3");
 	run("Clear Results");
-	for (i=1; i<frames+1; i++){
-		selectWindow("tempCh1");
-		Stack.setFrame(i);
-		selectWindow("tempCh2");
-		Stack.setFrame(i);
-		for (j=1; j<slices+1; j++) {
-			selectWindow("tempCh1");
-			Stack.setSlice(j);
-			selectWindow("tempCh2");
-			Stack.setSlice(j);
-			run("Create Selection");
-			if (getValue("selection.size") > 0) {
-				run("Convex Hull");
-				run("Measure");
-			}
-			run("Select None");
-		}
+
+	nParticles = roiManager("count");
+	selectWindow("tempCh1");
+	for (i=0; i<nParticles; i++){
+		roiManager("Select", i);
+		run("Convex Hull");
+		run("Measure");
+		run("Select None");
 	}
 
 	// reset set measurements

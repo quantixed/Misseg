@@ -23,7 +23,7 @@ Function ERAnalysis(opt)
 	CleanSlate()
 	ERPreLoader(opt)
 	GraphAll()
-	MakeTheLayouts("p_",5,2, rev = 1, saveIt = 0)
+	MakeTheLayouts("p_", 6, 2, rev = 1, saveIt = 0)
 End
 
 ////////////////////////////////////////////////////////////////////////
@@ -81,9 +81,10 @@ Function ERPreLoader(opt)
 				expDiskFolderName = condDiskFolderName + expDiskFolderName + ":"
 				NewPath/O/Q expDiskFolder, expDiskFolderName
 				tmpList = IndexedFile(expDiskFolder,-1,".txt")
+				tmpList = ListMatch(tmpList,"*_results.txt")
 				nFiles = ItemsInList(tmpList)
 				for (fileLoop = 0; fileLoop < nFiles; fileLoop += 1)
-					fileList1 += expDiskFolderName + ":" + StringFromList(fileLoop, tmpList) + ";"
+					fileList1 += expDiskFolderName + StringFromList(fileLoop, tmpList) + ";"
 				endfor
 			endfor
 			Wave/T fileName1Wave = ListToTextWave(FileList1,";")
@@ -104,14 +105,14 @@ Function LoadMeasurements(fWaveToLoad, pathNameString, folderString, zMax, zStep
 	Variable nFiles = numpnts(fWaveToLoad)
 	String thisFile
 	
-	Variable i,j
+	Variable i,j,k
 	
 	// set up folder
 	NewDataFolder/O/S $("root:" + folderString)
 	String wList = "XWave;AreaW;MeanW;StdDev;MinW;MaxW;IntDen;RawIntDen;Slice;Frame;"
 	String hList = "row;theArea;theMean;StdDev;Min;Max;IntDen;RawIntDen;Slice;Frame;"
  	Variable nCol = ItemsInList(wList)
- 	Variable maxT, matRow
+ 	Variable maxT, maxSlice, matRow
  	
 	for (i = 0; i < nFiles; i += 1)
 		ThisFile = fWaveToLoad[i]
@@ -125,15 +126,34 @@ Function LoadMeasurements(fWaveToLoad, pathNameString, folderString, zMax, zStep
 		// now find the maximum frame number
 		MatrixOp/O/FREE theTime = col(matA,9)
 		maxT = WaveMax(theTime)
+		MatrixOp/O/FREE theSlice = col(matA,8)
+		maxSlice = WaveMax(theSlice)
 		matRow = DimSize(matA,0)
 		// make some waves to hold volume data for this cell
 		Make/O/N=(maxT)/D $("cellVol_" + num2str(i)), $("ERVol_" + num2str(i))
 		Wave cellW = $("cellVol_" + num2str(i))
 		Wave erW = $("ERVol_" + num2str(i))
-		
+
+		// find biggest area for each slice at each timepoint
+		Make/O/N=(matRow)/FREE biggest=0
+		for (j = 0; j < maxT; j += 1)
+			for (k = 0; k < maxSlice; k += 1)
+				Make/O/N=(matRow)/FREE index
+				MatrixOp/O/FREE thisArea = col(matA,1)
+				index[] = (theTime[p] == j + 1 && theSlice[p] == k + 1) ? p : NaN
+				thisArea[] = (theTime[p] == j + 1 && theSlice[p] == k + 1) ? thisArea[p] : NaN
+				Wavetransform zapNaNs index
+				Wavetransform zapNaNs thisArea
+				if(numpnts(index) > 0)
+					Sort/R thisArea, thisArea,index
+					biggest[index[0]] = 1
+				endif
+			endfor
+		endfor
+		// we now have a wave called biggest where biggest for each Z/T combo is 1, all else is 1
 		for (j = 0; j < maxT; j += 1)
 			Make/O/N=(matRow)/FREE index
-			index[] = (theTime[p] == j + 1) ? p : NaN 
+			index[] = (theTime[p] == j + 1 && biggest == 1) ? p : NaN
 			Wavetransform zapNaNs index
 			if(numpnts(index) == 0)
 				cellW[j] = 0
