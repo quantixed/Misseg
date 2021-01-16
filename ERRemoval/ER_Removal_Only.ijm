@@ -55,16 +55,16 @@ function segmentAndMeasure()	{
 	selectWindow("tempCh2");
 	Stack.setFrame(floor(frames / 2));
 	Stack.setSlice(floor(slices / 2));
-	setAutoThreshold("Shanbhag dark no-reset");
+	setAutoThreshold("Shanbhag dark");
 	run("Convert to Mask", "method=Shanbhag background=Dark calculate");
 	// get rid of stray pixels
 	run("Open", "stack");
 	
-	// select stargazin channel, find mid point
+	// select ER channel, find mid point
 	selectWindow("tempCh1");
 	Stack.setFrame(floor(frames / 2));
 	Stack.setSlice(floor(slices / 2));
-	setAutoThreshold("Shanbhag dark no-reset");
+	setAutoThreshold("Shanbhag dark");
 	run("Convert to Mask", "method=Shanbhag background=Dark");
 
 	// now do analyze particles
