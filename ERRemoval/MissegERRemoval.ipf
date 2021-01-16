@@ -1,5 +1,7 @@
 #pragma TextEncoding = "UTF-8"
 #pragma rtGlobals=3		// Use modern global access method and strict wave access.
+#pragma DefaultTab={3,20,4}		// Set default tab width in Igor Pro 9 and later
+#include <Waves Average>
 
 // text files are outputs from ER_Removal.ijm
 // this procedure will (currently) read in the files and do the calculations
@@ -10,8 +12,8 @@
 ////////////////////////////////////////////////////////////////////////
 Menu "Misseg"
 	Submenu "ER Removal"
-		"Analyse Removal...", ERAnalysis(0)
-		"Analyse Removal Multilevel...", ERAnalysis(1)
+		"Analyse Removal...", /Q, ERAnalysis(0)
+		"Analyse Removal Multilevel...", /Q, ERAnalysis(1)
 	End
 End
 
@@ -191,8 +193,11 @@ Function GraphThem(plotName,wavesearch,yLab)
 	
 	DFREF dfr = GetDataFolderDFR()
 	Variable allItems = CountObjectsDFR(dfr, 4)
-	MakeColorWave(allItems, "colorWave", alpha = round(65535 / 2))
 	Wave/Z colorWave = root:colorWave
+	if(!WaveExists(colorWave))
+		MakeColorWave(allItems, "colorWave", alpha = round(65535 / 2))
+		Wave/Z colorWave = root:colorWave
+	endif
 	
 	String dfName, wList, thisPlotName, wName
 	Variable nWaves
@@ -214,8 +219,41 @@ Function GraphThem(plotName,wavesearch,yLab)
 		Label/W=$thisPlotName bottom "Time (min)"
 		ModifyGraph/W=$thisPlotName rgb=(colorWave[i][0],colorWave[i][1],colorWave[i][2],colorWave[i][3])
 		ModifyGraph/W=$thisPlotName margin(left)=54
+		AddOrUpdateAverage(thisPlotName)
 	endfor
 	SetDataFolder root:
+End
+
+Function AddOrUpdateAverage(plotName)
+	String plotName
+	
+	String tList = TraceNameList(plotName,";",1)
+	Variable nTraces = ItemsInList(tList)
+	String tName
+	String wList = ""
+	Variable AverageWavePresent = 0
+	
+	Variable i
+	
+	for(i = 0; i < nTraces; i += 1)
+		tName = StringFromList(i, tList)
+		if(stringmatch(tName,"W_Ave*") == 0)
+			Wave w = TraceNameToWaveRef(plotName,tName)
+			wList += GetWavesDataFolder(w,2) + ";"
+		else
+			AverageWavePresent = 1
+		endif
+	endfor
+	
+	SetDataFolder root:
+	String avName = ReplaceString("p_",plotName,"W_Ave_")
+	String errName = ReplaceString("Ave", avName, "Err")
+	fWaveAverage(wList, "", 3, 1, avName, errName)
+	if(AverageWavePresent == 0)
+		AppendToGraph/W=$plotName $avName
+		ErrorBars/W=$plotName $avName SHADE= {0,0,(0,0,0,0),(0,0,0,0)},wave=($ErrName,$ErrName)
+		ModifyGraph/W=$plotName lsize($avName)=2,rgb($avName)=(0,0,0)
+	endif
 End
 
 Function NormaliseThem()
@@ -225,7 +263,7 @@ Function NormaliseThem()
 	Variable allItems = CountObjectsDFR(dfr, 4)
 	
 	String dfName, wList, wName, newWName
-	Variable nWaves
+	Variable nWaves, normVal
 	Variable i,j
 	
 	for(i = 0; i < allItems; i += 1)
@@ -240,7 +278,8 @@ Function NormaliseThem()
 			newWName = wName + "_n"
 			Duplicate/O w0 $newWName
 			Wave w1 = $newWName
-			w1[] = w0[p] / w0[0]
+			normVal = (w0[0] + w0[1]) / 2 // use this rather than mean due to uncertainty of scaling
+			w1[] = w0[p] / normVal
 		endfor
 	endfor
 	SetDataFolder root:
@@ -535,4 +574,33 @@ STATIC Function RoundFunction(value,roundTo)
 	Variable newVal = ceil(value)
 	newVal *= roundTo
 	return newVal
+End
+
+// specific to this pxp
+// no error checking
+Function RemoveCaseFromPlots(cond,cell)
+	String cond
+	Variable cell
+	
+	String plotName
+	
+	plotName = "p_cell_" + cond
+	RemoveFromGraph/W=$plotName $("cellVol_" + num2str(cell))
+	AddOrUpdateAverage(plotName)
+	plotName = "p_er_" + cond
+	RemoveFromGraph/W=$plotName $("ERVol_" + num2str(cell))
+	AddOrUpdateAverage(plotName)
+	plotName = "p_ratio_" + cond
+	RemoveFromGraph/W=$plotName $("volRatio_" + num2str(cell))
+	AddOrUpdateAverage(plotName)
+
+	plotName = "p_ncell_" + cond
+	RemoveFromGraph/W=$("p_ncell_" + cond) $("cellVol_" + num2str(cell) + "_n")
+	AddOrUpdateAverage(plotName)
+	plotName = "p_ner_" + cond
+	RemoveFromGraph/W=$("p_ner_" + cond) $("ERVol_" + num2str(cell) + "_n")
+	AddOrUpdateAverage(plotName)
+	plotName = "p_nratio_" + cond
+	RemoveFromGraph/W=$("p_nratio_" + cond) $("volRatio_" + num2str(cell) + "_n")
+	AddOrUpdateAverage(plotName)
 End
