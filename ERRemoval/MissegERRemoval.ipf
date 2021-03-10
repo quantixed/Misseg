@@ -25,6 +25,8 @@ Function ERAnalysis(opt)
 	CleanSlate()
 	ERPreLoader(opt)
 	GraphAll()
+	OffsetByDerivative()
+	MakeSummaryGraphs()
 	MakeTheLayouts("p_", 6, 2, rev = 1, saveIt = 0)
 End
 
@@ -59,6 +61,7 @@ Function ERPreLoader(opt)
 		String topDiskFolderName = S_path
 		
 		String dirList = IndexedDir(expDiskFolder1,-1,0)
+		dirList = SortList(dirList)
 		Variable nDirs = ItemsInList(dirList)
 		
 		Variable dirLoop, subDirLoop, fileLoop, nSubDirs, nFiles
@@ -181,10 +184,12 @@ Function GraphAll()
 	GraphThem("p_cell_","cellVol_*","Cell Volume")
 	GraphThem("p_er_","ERVol_*","ER Volume")
 	GraphThem("p_ratio_","volRatio_*","ER Ratio")
+//	BleachCorrect("ERVol_*","ERVolBC_")
 	NormaliseThem()
 	GraphThem("p_ncell_","cellVol_*_n","Cell Volume (normalized)")
 	GraphThem("p_ner_","ERVol_*_n","ER Volume (normalized)")
 	GraphThem("p_nratio_","volRatio_*_n","ER Ratio (normalized)")
+//	GraphThem("p_nerBC_","ERVolBC_*_n","ER Volume (BC normalized)")
 End
 
 Function GraphThem(plotName,wavesearch,yLab)
@@ -283,6 +288,145 @@ Function NormaliseThem()
 		endfor
 	endfor
 	SetDataFolder root:
+End
+
+// example is "ERVol_*" for searchStr to find all waves named like that and change
+// to the toStr which would be "ERVolBC_x"
+Function BleachCorrect(searchStr, toStr)
+	String searchStr, toStr
+	SetDataFolder root:data
+	
+	DFREF dfr = GetDataFolderDFR()
+	Variable allItems = CountObjectsDFR(dfr, 4)
+	
+	String dfName, wList, wName, newWName
+	Variable nWaves, normVal
+	Variable i,j
+	
+	for(i = 0; i < allItems; i += 1)
+		dfName = GetIndexedObjNameDFR(dfr, 4, i)
+		SetDataFolder $("root:data:" + dfName)
+		wList = WaveList(searchStr,";","")
+		nWaves = ItemsInList(wList)
+		for(j = 0; j < nWaves; j += 1)
+			wName = StringFromList(j,wList)
+			Wave w0 = $wName
+			newWName = ReplaceString(RemoveEnding(searchStr),wName,toStr)
+			Duplicate/O w0 $newWName
+			Wave w1 = $newWName
+			CurveFit/Q/X=1 line w0[numpnts(w0) - 6,numpnts(w0) - 1] /D
+			WAVE/Z W_coef
+			w1[] -= W_coef[0] + (W_coef[1] * x)
+			Wave fitW = $("fit_" + wName)
+			KillWaves/Z fitW
+		endfor
+	endfor
+	SetDataFolder root:
+End
+
+Function OffsetByDerivative()
+	SetDataFolder root:data
+	
+	DFREF dfr = GetDataFolderDFR()
+	Variable allItems = CountObjectsDFR(dfr, 4)
+	
+	String dfName, wList, wName, newName, resultWName
+	Variable nWaves, normVal, off, delta
+	Variable i,j
+	
+	for(i = 0; i < allItems; i += 1)
+		dfName = GetIndexedObjNameDFR(dfr, 4, i)
+		SetDataFolder $("root:data:" + dfName)
+		wList = WaveList("ERVol_*_n",";","")
+		nWaves = ItemsInList(wList)
+		resultWName = "root:diffResult_" + dfName
+		Make/O/N=(nWaves,2) $resultWName
+		Wave resultW = $resultWName
+		for(j = 0; j < nWaves; j += 1)
+			wName = StringFromList(j,wList)
+			Wave w0 = $wName
+			delta = deltax(w0)
+			newName = "d" + wName // this is the name of the offset wave
+			Duplicate/O $wName, $newName
+			Wave w1 = $newName
+			// find the derivative and lowest point
+			Duplicate/O/FREE $wName, tempW
+			Differentiate tempW /D=tempW
+			WaveStats/Q/RMD=[2,*] tempW
+			//Print i, V_min, V_minLoc
+			if(V_MinLoc > 60 || numtype(V_min) == 2)
+				off = 0
+			else
+				off = -V_minLoc
+			endif
+			resultW[j][0] = V_min
+			resultW[j][1] = V_minLoc
+			SetScale/P x,off,delta, "", w1
+		endfor
+	endfor
+	SetDataFolder root:
+	
+	GraphThem("p_offner_","dERVol_*_n","ER Volume (normalized)")
+End
+
+Function MakeSummaryGraphs()
+	SetDataFolder root:
+	WAVE/Z colorWave
+	
+	KillWindow/Z p_meanSummary
+	Display/N=p_meanSummary
+	KillWindow/Z p_meanOffset
+	Display/N=p_meanOffset
+	String aveName, errName
+	String wList = WaveList("W_Ave_ner*",";","")
+	Variable nWaves = ItemsInList(wList)
+	
+	Variable i
+	
+	for(i = 0; i < nWaves; i += 1)
+		aveName = StringFromList(i, wList)
+		errName = ReplaceString("_Ave_",aveName,"_Err_")
+		AppendToGraph/W=p_meanSummary $AveName
+		ErrorBars/W=p_meanSummary $AveName SHADE= {0,0,(0,0,0,0),(0,0,0,0)},wave=($errName,$errName)
+		ModifyGraph/W=p_meanSummary rgb($aveName)=(colorWave[i][0],colorWave[i][1],colorWave[i][2])
+		aveName = ReplaceString("Ave_ner",aveName,"Ave_offner")
+		errName = ReplaceString("_Ave_",aveName,"_Err_")
+		AppendToGraph/W=p_meanOffset $AveName
+		ErrorBars/W=p_meanOffset $AveName SHADE= {0,0,(0,0,0,0),(0,0,0,0)},wave=($errName,$errName)
+		ModifyGraph/W=p_meanOffset rgb($aveName)=(colorWave[i][0],colorWave[i][1],colorWave[i][2])
+	endfor
+	// format summary graphs
+	SetAxis/W=p_meanSummary bottom 0,80
+	SetAxis/W=p_meanSummary/A/N=1 left
+	Label/W=p_meanSummary bottom "Time (min)"
+	Label/W=p_meanSummary left "ER Volume (normalized)"
+	SetAxis/W=p_meanOffset bottom -20,60
+	SetAxis/W=p_meanOffset left 0.3,1.2
+	Label/W=p_meanOffset bottom "Time (min)"
+	Label/W=p_meanOffset left "ER Volume (normalized)"
+	
+	// now make cumulative histograms
+	KillWindow/Z p_hist
+	Display/N=p_hist
+	wList = WaveList("diffResult*",";","")
+	nWaves = ItemsInList(wList)
+	String wName, newName
+	
+	for(i = 0; i < nWaves; i += 1)
+		wName = StringFromList(i,wList)
+		Wave w = $wName
+		Make/O/N=(DimSize(w,0))/FREE tempW
+		// if the V_min is less that -0.02 take the time, -1 if not
+		tempW[] = (w[p][0] < -0.015) ? w[p][1] : -1
+		newName = wName + "_hist"
+		Make/N=100/O $newName
+		Histogram/CUM/P/B={0,1,100} tempW,$newName
+		AppendToGraph/W=p_hist $newName
+		ModifyGraph/W=p_hist rgb($newName)=(colorWave[i][0],colorWave[i][1],colorWave[i][2])
+	endfor
+	SetAxis/W=p_hist left 0,1
+	Label/W=p_hist left "Probability"
+	Label/W=p_hist bottom "Time (min)"
 End
 
 ////////////////////////////////////////////////////////////////////////
@@ -603,4 +747,28 @@ Function RemoveCaseFromPlots(cond,cell)
 	plotName = "p_nratio_" + cond
 	RemoveFromGraph/W=$("p_nratio_" + cond) $("volRatio_" + num2str(cell) + "_n")
 	AddOrUpdateAverage(plotName)
+//	plotName = "p_nerbc_" + cond
+//	RemoveFromGraph/W=$("p_nerbc_" + cond) $("ERVolBC_" + num2str(cell) + "_n")
+//	AddOrUpdateAverage(plotName)
+	plotName = "p_offner_" + cond
+	RemoveFromGraph/W=$("p_offner_" + cond) $("dERVol_" + num2str(cell) + "_n")
+	AddOrUpdateAverage(plotName)
+End
+
+// this function is for checking normalised ERVol traces vs their derivatives
+// must be in a datafolder to run it
+Function LookAtThis(ii)
+	Variable ii
+
+	String wName = "ERVol_" + num2str(ii) + "_n"
+	Wave/Z w = $wName
+	if(!WaveExists(w))
+		return -1
+	else
+		KillWindow/Z p_thisTrace
+		Display/N=p_thisTrace
+		AppendToGraph/W=p_thisTrace $("d"+wName)
+		ModifyGraph/W=p_thisTrace rgb=(0,0,65535) 
+		AppendToGraph/W=p_thisTrace/R $wName
+	endif
 End
