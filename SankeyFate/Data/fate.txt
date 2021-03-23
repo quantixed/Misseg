@@ -1,0 +1,348 @@
+Experiment	Cell	Class	Fate
+sec61b+TTOGSK_2018-10-22	1 (Movie 3) Chromosome birdge	0	2
+sec61b+TTOGSK_2018-10-22	2 (Movie 4) Chromosome bidge	0	2
+sec61b+TTOGSK_2018-10-22	3(Movie 4) WT cell	0	0
+sec61b+TTOGSK_2018-10-22	5( Movie 6) WT	0	0
+sec61b+TTOGSK_2018-10-22	7(Movie 11_WT)	0	0
+sec61b+TTOGSK_2018-10-22	8 (Movie 12_chromosome missegregated_ensheated_corrected_normal fate)	2	0
+sec61b+TTOGSK_2018-10-22	9 (Movie 12_wt)	0	0
+sec61b+TTOGSK_2018-10-22	10 (Movie 12_chromosome missegregated_ensehated_micronuclei) Start in Metaphase	2	1
+sec61b+TTOGSK_2018-10-22	11 (Movie 14_WT)	0	0
+sec61b+TTOGSK_2018-10-22	12 (Movie 14_wt)	0	0
+sec61b+TTOGSK_2018-10-22	13(Movie_14_missegregated_ensheathed_micronuclei)	2	1
+sec61b+TTOGSK_2018-10-24	14 (Movie 5 chromosomes missegregated_ensheathing_aneuploidy)	2	2
+sec61b+TTOGSK_2018-10-24	15 (Movie 5 chromosomes missegregated_ensheathing_aneuploidy)	2	2
+sec61b+TTOGSK_2018-10-24	16 (Movie 7  chromosome _no alignment_ensehathing_normal fate)	2	0
+sec61b+TTOGSK_2018-10-24	17 (Movie 7 chromosome_no alignment_ensehathing_apoptosis)	2	3
+sec61b+TTOGSK_2018-10-24	18 (Movie 8 chromosome_no alignement_no ensheathing_normal)	1	0
+sec61b+TTOGSK_2018-10-24	19 (Movie 8_WT)	0	0
+sec61b+TTOGSK_2018-10-24	20 (Movie 8_chromosome _no alignment_normal fate)	1	0
+sec61b+TTOGSK_2018-10-24	21( Movie8_chromosome_no alignement_no ensheathing_normal fate)	1	0
+sec61b+TTOGSK_2018-10-24	22 (Movie 9_WT)	2	2
+sec61b+TTOGSK_2018-10-24	23 (Movie 9_chromosome_no alignment_no ensheathing_aneuploidy)	1	2
+sec61b+TTOGSK_2018-10-24	24 (Movie 10_Chromosome_no alignment_ensheathing_normal fate)	1	0
+sec61b+TTOGSK_2018-10-24	25 (Movie10_chromosome_no alignment_ensheathing_aneuploidy)	2	2
+sec61b+TTOGSK_2018-10-24	26 (Movie 11_chromosome_no alignment_ensheathing_normal fate)	2	0
+sec61b+TTOGSK_2018-10-24	27(Movie 12_chromosome_no alignment_ensheathing_apoptosis)	2	3
+sec61b+TTOGSK_2018-10-24	28 (Movie 12_chromosome_no alignment_ensheathing_apoptosis)	2	3
+sec61b+TTOGSK_2018-10-24	29 (Movie 12_chromosome_no alignment_ensheathing_micronuclei)	2	1
+sec61b+TTOGSK_2018-10-24	30 (Movie14_chromosome_no alignment_no ensheating_normal fate)	1	0
+sec61b+TTOGSK_2018-10-24	31 (Movie14_chromosome_no alignment_ensheathing_Normal fate)	2	0
+sec61b+TTOGSK_2018-10-24	32 (Movie 14_chormosome_no alignment_ensheathing_apoptosis)	2	3
+sec61b+TTOGSK_2018-10-24	33 (Movie 15_chromosome_no alignment_ensheathing_normal fate)	2	0
+sec61b+TTOGSK_2018-10-24	34 (Movie 15_chromosome_no alignment_ensheathing_normal fate)	2	0
+sec61b+TTOGSK_2018-10-26	35 (Movie 1_chromosome_no alignment_ensheathing_normal fate)	2	0
+sec61b+TTOGSK_2018-10-26	36 (Movie 2_chromosome_alignment_lagging chromosome/bridge)	0	2
+sec61b+TTOGSK_2018-10-26	37(Movie 2_normal mitosis)	0	0
+sec61b+TTOGSK_2018-10-26	38 (Movie 2_Normal mitosis)	0	0
+sec61b+TTOGSK_2018-10-26	39( Movie 3_WT)	0	0
+sec61b+TTOGSK_2018-10-26	40 (Movie 5_Normal Mitosis)	0	0
+sec61b+TTOGSK_2018-10-26	41(Movie 5_chromosome_no alignment_ensheathing_aneuploidy)	2	2
+sec61b+TTOGSK_2018-10-26	42 (Movie 6_chromosome_no alignment_ensheathing_aneuploidy)	2	2
+sec61b+TTOGSK_2018-10-26	43 (Movie 7_chromosome_no alignment_ensheathing_aneuploidy)	2	2
+sec61b+TTOGSK_2018-10-26	44 (Movie 9_chromosome_no alignement_ensheathing_normal fate)	2	0
+sec61b+TTOGSK_2018-10-26	45 (Moive 10_Chromosome_alignment_normal fate) No inicio	0	0
+sec61b+TTOGSK_2018-10-26	46( Movie 13_wt mitosis)	0	0
+sec61b+TTOGSK_2018-10-26	47 (Movie_13_ chromosome_no alignment_ensheathing_aneuploidy)	2	2
+sec61b+TTOGSK_2018-10-26	48 (Movie 15_chromosome_alignment_normal fate) I can not see initial point	0	0
+sec61b+TTOGSK_2018-10-30	49 (Movie 1_ensheathing_normal fate)	2	0
+sec61b+TTOGSK_2018-10-30	50 (Movie1_no alignment_ensheathing_aneuploidy_micronuclei)	2	1
+sec61b+TTOGSK_2018-10-30	51(Movie 1_no alignemnent_ensheathung_lagging_anueplodidy)	2	2
+sec61b+TTOGSK_2018-10-30	52( Movie 6_no alignment_ensehathing_micronuclei)	2	1
+sec61b+TTOGSK_2018-10-30	53 (Movie_6_normal Mitosis)	0	0
+sec61b+TTOGSK_2018-10-30	54( Movie 7_no alignment properly_ensheathing_micronuclei)	2	1
+sec61b+TTOGSK_2018-10-30	55(Movie 7_no alignment_no ensheathing_lagging_aneuploidy)	1	2
+sec61b+TTOGSK_2018-10-30	56 (Movie 8_no alignment_ensheathing_micronuclei)	2	1
+sec61b+TTOGSK_2018-10-30	57(Movie 9_chromosome no alignment_ensheathing_normal fate??)	2	0
+sec61b+TTOGSK_2018-10-30	52( Movie 9_chromosome no alignment_ensheathing_aneuploidy)	2	2
+sec61b+TTOGSK_2018-10-30	53 (Movie 9_chromosome free_no ensheathing_Micronuclei from anaphase)	1	1
+sec61b+TTOGSK_2018-10-30	54( Movie 11_no alignment_ensheathing_normal fate)	2	0
+sec61b+TTOGSK_2018-10-30	55 (Movie11_normal Mitosis	0	0
+sec61b+TTOGSK_2018-10-30	56 (Movie 12_no alignment_ensheathing_aneuploidy_monster)	2	2
+sec61b+TTOGSK_2018-10-30	57 (Movie 12_no alignment_ensheathing_aneuploidy_monster)	2	2
+sec61b+TTOGSK_2018-10-30	58 (Movie 13_no alignment_ensheathing_normal fate)	2	0
+sec61b+TTOGSK_2018-10-30	59 (Movie 13_no alignment_ensheathing_apoptosis)	2	3
+sec61b+TTOGSK_2018-10-30	60 (Movie 14_no alignment_ensheathing_aneuploidy)	2	2
+sec61b+TTOGSK_2018-11-03	61 (Movie 1_no alignment_ensheathing_micronuclei)	2	1
+sec61b+TTOGSK_2018-11-03	62 (Movie 2_normal mitosis)	0	0
+sec61b+TTOGSK_2018-11-03	63 (Movie 2_no alignment_ensheathing_micronuclei)	2	1
+sec61b+TTOGSK_2018-11-03	64 (Movie 3_Normal Mitosis)	0	0
+sec61b+TTOGSK_2018-11-03	65 (Movie 3_Normal Mitosis)	0	0
+sec61b+TTOGSK_2018-11-03	66 (Movie 5_chromosome  no alignment_no ensheathing_ normal fate)	1	0
+sec61b+TTOGSK_2018-11-03	67 (Movie 7_no alignment_ensheathing_micronuclei)	2	1
+sec61b+TTOGSK_2018-11-03	68 (Movie 8_no alignment_ensheathing_micronuclei)	2	1
+sec61b+TTOGSK_2018-11-03	69 (Movie 9_no alignment_no ensheathing_lagging chromosome in  anaphase)	1	2
+sec61b+TTOGSK_2018-11-03	70 (Movie 10_Normal Mitosis)	0	0
+sec61b+TTOGSK_2018-11-03	71 (Movie 10_normal mitosis)	0	0
+sec61b+TTOGSK_2018-11-03	72 (Movie 11_no alignment_ensheathing_normal fate)	2	0
+sec61b+TTOGSK_2018-11-03	73 (Movie 12_no alignment_ensheathing_micronuclei)	2	1
+sec61b+TTOGSK_2018-11-03	74 (Movie 12_no alignment_ensheathing_micronuclei)	2	1
+sec61b+TTOGSK_2018-11-03	75 (Movie 3_no alignment_ensheathing_micronuclei)	2	1
+sec61b+TTOGSK_2018-11-06	79(Movie1__alignment_normal Mitosis)	0	0
+sec61b+TTOGSK_2018-11-06	80 (Movie1_alignment_anaphase bridge_normal fate)	0	0
+sec61b+TTOGSK_2018-11-06	81 (Movie1_alignment_normal fate)	0	0
+sec61b+TTOGSK_2018-11-06	82( Movie 4_no alignment_ensheathing_normal fate)	2	0
+sec61b+TTOGSK_2018-11-06	83 (Movie 5_normal Mitosis)	0	0
+sec61b+TTOGSK_2018-11-06	84(Movie 6_no alignment_ensheathing_normal fate)	2	0
+sec61b+TTOGSK_2018-11-06	85(Movie6_no alignment_ensheathing_aneuploidy)	2	2
+sec61b+TTOGSK_2018-11-06	86 (Movie6_Normal Mitosis)	0	0
+sec61b+TTOGSK_2018-11-06	87 (Movie 7_no alignment_ensheathing_normal fate)	2	0
+sec61b+TTOGSK_2018-11-06	88 (Movie 7_no alignment_ensheathing_normal fate)	2	0
+sec61b+TTOGSK_2018-11-06	89 (Movie 8_Normal Mitosis)	0	0
+sec61b+TTOGSK_2018-11-06	90 (Moive9_no alignement_no enehathing_normal fate)	0	0
+sec61b+TTOGSK_2018-11-06	91 (Movie 10_Normal Mitosis)	0	0
+sec61b+TTOGSK_2018-11-06	92 (Movie 11_no alignement_ensheathing_normal fate)	2	0
+sec61b+TTOGSK_2018-11-06	93 (Movie 12_normal mitosis)	0	0
+sec61b+TTOGSK_2018-11-06	94(Movie13_no alignement_ensheathing_micronuclei)	2	1
+sec61b+TTOGSK_2018-11-06	95 (Movie 14_no alignemnt_enehathiong_aneuploidy(	2	2
+sec61b+TTOGSK_2018-11-06	96(Movie14_no alignement_ensheathing_micronuclei)	2	1
+sec61b+TTOGSK_2018-11-09	97 (Movie 1_normal mitosis)	0	0
+sec61b+TTOGSK_2018-11-09	98(Movie1_no alignement_ensehathing_micronuclei)	2	1
+sec61b+TTOGSK_2018-11-09	99(Movie1_no alignement_ensehathing_micronuclei)	2	1
+sec61b+TTOGSK_2018-11-09	100(Movie 2_no alignment_ensheathing_micronuclei)	2	1
+sec61b+TTOGSK_2018-11-09	101(Movie3_no aligment_ensheathing_normal fate)	2	0
+sec61b+TTOGSK_2018-11-09	102(Movie4-no alignment_no ensheathing_normal fate)	2	0
+sec61b+TTOGSK_2018-11-09	103(Movie4_normal mitosis)	0	0
+sec61b+TTOGSK_2018-11-09	104(Movie6_no alignment_ensheathing_normal fate)	2	0
+sec61b+TTOGSK_2018-11-09	105(Movie6_no alignmnet_ensheathing_apoptosis)	2	3
+sec61b+TTOGSK_2018-11-09	106(Movie7_no alignment_no ensheathing_normal fate)	1	0
+sec61b+TTOGSK_2018-11-09	107(Movie7_normal Mitosis)	0	0
+sec61b+TTOGSK_2018-11-09	106 (Movie9_no alignment_ensheathing_micronuclei)	2	1
+sec61b+TTOGSK_2018-11-09	107(Movie9_noalignment_ensheathing_apoptosis)	2	3
+sec61b+TTOGSK_2018-11-09	108(Movie10_no alignment_no ensheathing_normal fate)	1	0
+sec61b+TTOGSK_2018-11-09	109(Movie10_noalignment_ensheathing_apoptosis)	2	3
+sec61b+TTOGSK_2018-11-09	110 (Movie11_noalignment_enseheathing_slippage)	2	2
+sec61b+TTOGSK_2018-11-09	111(Movie12_noalignment_ensheathing_slippage)	2	2
+sec61b+TTOGSK_2018-11-09	112(Movie13_noalignement_ensheathing_slippage)	2	1
+sec61b+TTOGSK_2018-11-09	113(movie14_noalignment_ensheathing_micronuclei)	2	1
+sec61b+TTOGSK_2018-11-09	114(movie14_noalignment_ensheathing_micronuclei)	2	1
+sec61b+TTOGSK_2018-11-09	115(movie14_noalignment_ensheathing_micronuclei)	2	1
+sec61b+TTOGSK_2018-11-09	116(movie14_noalignment_ensheathing_micronuclei)	2	1
+sec61b+TTOGSK_2018-11-09	117(movie14_noalignment_ensheathing_micronuclei)	2	1
+sec61b+TTOGSK_2018-11-09	118(movie14_normal mitosis)	0	0
+sec61b+TTOGSK_2018-11-14	119 (movie1_noalignment_ensheathing_aneuploidy_slippage)	2	2
+sec61b+TTOGSK_2018-11-14	120 (movie2_no alignment_ensheathing_normal fate)	2	0
+sec61b+TTOGSK_2018-11-14	121(movie2_no alignment_ensheathing_normal fate)	2	0
+sec61b+TTOGSK_2018-11-14	122(Movie3_noalignment_ensheathing_normal fate)	2	0
+sec61b+TTOGSK_2018-11-14	123(Movie4_noalignment_ensheathing_normal fate)	2	0
+sec61b+TTOGSK_2018-11-14	124(movie4_noalignment_ensheathing_micronuclei)	2	1
+sec61b+TTOGSK_2018-11-14	125(Movie5_noalignment_ensheathing_normal fate)	2	0
+sec61b+TTOGSK_2018-11-14	126(Movie6-noalignment_ensheathing_aneuploidy_look back)	2	2
+sec61b+TTOGSK_2018-11-14	127(Movie7_noalignment_ensheathing_normal fate)	2	0
+sec61b+TTOGSK_2018-11-14	128(Movie8_noalignment_ensheathing_normal divsion)	2	0
+sec61b+TTOGSK_2018-11-14	129(Movie8_noalignment_ensheathing_aneuploidy_bridge)	2	2
+sec61b+TTOGSK_2018-11-14	130(Movie8_noalignment_ensheathing_aneuploidy_bridge)	2	2
+sec61b+TTOGSK_2018-11-14	131(Movie8_alignment_normal division)	0	0
+sec61b+TTOGSK_2018-11-14	132(Movie9_noalignment_ensheathing_properdivision)	2	0
+sec61b+TTOGSK_2018-11-14	133(Movie9_noalignment_ensheathing_slippage)	2	2
+sec61b+TTOGSK_2018-11-14	134(Movie10_noalignment_ensheathing_slippage)	2	2
+sec61b+TTOGSK_2018-11-14	135(Movie10_alignment_bridge)	1	2
+sec61b+TTOGSK_2018-11-14	136(Movie10_noalignment_ensheathing_apoptosis)	2	3
+sec61b+TTOGSK_2018-11-14	137(Movie10_noalignment_enshething_micronuclei)	2	1
+sec61b+TTOGSK_2018-11-14	138(Movie11_noalignment_ensheathing_aneuploidy)	2	2
+sec61b+TTOGSK_2018-11-14	139(Movie11_noalignemnt_ensheathing_aneuploidy)	2	2
+sec61b+TTOGSK_2018-11-14	140(Movie12_noalignment_ensheathing_micronuclei)	2	1
+sec61b+TTOGSK_2018-11-14	141(Movie12_alignment_normal division)	0	0
+sec61b+TTOGSK_2018-11-14	141(MOVIE13_noalignment_ensheathing_micronuclei)	2	1
+sec61b+TTOGSK_2018-11-14	142(Movie14_noalignemnet_ensheathing_micronuclei)	2	1
+sec61b+TTOGSK_2018-16-11	143(Movie1_noalignment_ensheathing_micronuclei)	2	1
+sec61b+TTOGSK_2018-16-11	144(Movie1_proper alignment_normal division)	0	0
+sec61b+TTOGSK_2018-16-11	145(Movie2_proper_alignment_normal division)	0	0
+sec61b+TTOGSK_2018-16-11	146(Movi2_proper alignment_no ensheathing_bridge_aneuploidy)	0	2
+sec61b+TTOGSK_2018-16-11	147(Movie 2_no proper alignment_no ensheating_aneuploidy)	1	2
+sec61b+TTOGSK_2018-16-11	148(Movie3_no proper alignment_ensheating_normal fate)	2	0
+sec61b+TTOGSK_2018-16-11	149(Movie4_no proper alignment_ensheathing_micronuclei)	2	1
+sec61b+TTOGSK_2018-16-11	150(Movie5_no proper alignment_ensheathing_micronuclei)	2	1
+sec61b+TTOGSK_2018-16-11	151(Movie6_no proper alignment_ensheathing_normal division)	2	0
+sec61b+TTOGSK_2018-16-11	152(Movie6_proper alignment_no ensheathing_lagging chromosome)	0	2
+sec61b+TTOGSK_2018-16-11	153(Movie7_proper_alignment_no ensheathing_normal division)	0	0
+sec61b+TTOGSK_2018-16-11	154(Movie8_no alignment_ensheathing_normal division)	2	0
+sec61b+TTOGSK_2018-16-11	155(Movie8_no alignment_ensheathing_micronuclei)	2	1
+sec61b+TTOGSK_2018-16-11	156(Movie8_alignment_noensheathing_bridge)	1	2
+sec61b+TTOGSK_2018-16-11	157(Movie9_noalignment_ensheathing_apoptosis)	2	3
+sec61b+TTOGSK_2018-16-11	158(Movie9_noalignment_ensheathing_normal fate)	2	0
+sec61b+TTOGSK_2018-16-11	159(Movie9_no alignment_ensheathing_micronuclei)	2	1
+sec61b+TTOGSK_2018-16-11	160(Movie9_alignment_normal fate)	0	0
+sec61b+TTOGSK_2018-16-11	161(Movie10_noalignment_ensheathing_normal fate)	2	0
+sec61b+TTOGSK_2018-16-11	161(Movie10_noalignment_ensheathing_normal fate)	2	0
+sec61b+TTOGSK_2018-16-11	161(Movie11_no alignment_ensheathing_micronuclei)	2	1
+sec61b+TTOGSK_2018-16-11	162(Movie11_no alignment_ensheathing_micronuclei)	2	1
+sec61b+TTOGSK_2018-16-11	163(Movie12_noalignment_ensehathing_micronuclei)	2	1
+sec61b+TTOGSK_2018-16-11	164(Movie12_noalignment_ensehathing_micronuclei)	2	1
+sec61b+TTOGSK_2018-16-11	165(Movie12_noalignment_ensehathing_micronuclei)	2	1
+sec61b+TTOGSK_2018-16-11	166(Movie12_noalignment_ensehathing_micronuclei)	2	1
+sec61b+TTOGSK_2018-16-11	167(Movie12_alignment_normal fate)	0	0
+sec61b+TTOGSK_2018-16-11	168(Movie12_alignment_noensehating_chromosome bridge)	0	2
+sec61b+TTOGSK_2018-16-11	169(Movie13_alignment_normal division)	0	0
+sec61b+TTOGSK_2018-16-11	170(Movie13_noalignment_ensheathing_normal fate)	2	0
+sec61b+TTOGSK_2018-16-11	171(Movie14_no alignment_ensheating_micronuclei)	2	1
+sec61b+TTOGSK_2018-16-11	172(movie15_noalignment_ensheathing_normal fate)	2	0
+sec61b+TTOGSK_2018-16-11	173(movie15_noalignment_ensheathing_normal fate)	2	0
+sec61b+TTOGSK_2018-16-11	174(movie15_noalignment_ensheathing_normal fate)	2	0
+sec61b+TTOGSK_2018-16-11	175(movie15_noalignment_ensheathing_micronuclei)	2	1
+sec61b+TTOGSK_2018-16-11	176(Movie16_no aloignment_ensheahing_normal fate)	2	0
+sec61b+TTOGSK_2018-16-11	177 (Movie16_no alignment_no ensheathing_normal fate)	1	0
+sec61b+TTOGSK_2018-16-11	178(Movie17_no alignment_ensheathing_micronuclei)	2	1
+sec61b+TTOGSK_2018-16-11	179(Movie18_no alignment_ensheathing_micronuclei)	2	1
+sec61b+TTOGSK_2018-16-11	180(Movie18_noalignment_ensheathing_normal fate)	2	0
+RPE1Control	1(Movie1)20190928	0	0
+RPE1Control	2(Movie 1)20190928	0	2
+RPE1Control	3(Movie2)20190928	0	0
+RPE1Control	4(Movie5)20190928	0	0
+RPE1Control	Movie5	0	0
+RPE1Control	Movie5	0	0
+RPE1Control	5(Movie6)20190928	0	0
+RPE1Control	6(Movie7)20190928	0	0
+RPE1Control	7(Movie9)20190928	0	0
+RPE1Control	Movie9	0	0
+RPE1Control	Movie9	0	0
+RPE1Control	Movie9	0	2
+RPE1Control	8(Movie 10)20190928	0	2
+RPE1Control	9(Movie 12)20190928	0	0
+RPE1Control	10(Movie13)20190928	0	0
+RPE1Control	11(Movie14)20190928	0	0
+RPE1Control	Movie14	0	0
+RPE1Control	Movie14	0	2
+RPE1Control	13(Movie15)20190928	0	0
+RPE1Control	Movie15	0	0
+RPE1Control	14(Movie16)20190928	0	0
+RPE1Control	15(Movie17)20190928	0	0
+RPE1Control	16(Movie19)20190928	0	0
+RPE1Control	Movie19	0	0
+RPE1Control	17(Movie19)20190928	0	2
+RPE1Control	18(Movie20)20190928	0	0
+RPE1Control	Movie20	0	0
+RPE1Control	19(Movie21)20190928	0	0
+RPE1Control	Movie22	0	0
+RPE1Control	20(Movie23)20190928	0	0
+RPE1Control	Movie 23	0	0
+RPE1Control	21(Movie24)20190928	0	0
+RPE1Control	22(Movie26)20190928	0	0
+RPE1Control	23(Movie27)20190928	0	0
+RPE1Control	24(Movie27)20190928	0	0
+RPE1Control	25(Movie27)20190928	0	0
+RPE1Control	26(Movie27)20190928	0	2
+RPE1Control	27(Movie28)20190928	0	0
+RPE1Control	28(Movie28)20190928	0	0
+RPE1Control	Movie28	0	2
+RPE1Control	29(Movie29)20190928	0	0
+RPE1Control	30(Movie31)20190928	0	0
+RPE1Control	31(Movie31)20190928	0	0
+RPE1Control	32(Movie32)20190928	0	0
+RPE1Control	33(Movie34)20190928	0	0
+RPE1Control	Movie 35	0	0
+RPE1Control	Movie 35	0	0
+RPE1Control	34(Movie36)20190928	0	0
+RPE1Control	35(Movie36)20190928	0	0
+RPE1Control	36(Movie36)20190928	0	0
+RPE1Control	37(Movie36)20190928	0	0
+RPE1Control	38(Movie2)20191001	0	0
+RPE1Control	39(Movie3)201910101	0	0
+RPE1Control	40(Movie4)20191001	0	0
+RPE1Control	41(movie5)201911001	0	0
+RPE1Control	42(Movie6)20191001	0	0
+RPE1Control	43(Movie 7)20191001	0	0
+RPE1Control	44(Movie8)20191001	0	0
+RPE1Control	45(Movie 9)20191001	0	0
+RPE1Control	46(Movie10)20191001	0	0
+RPE1Control	47(Movie11)20191001	0	2
+RPE1Control	48(Movie 12)20191001	0	0
+RPE1Control	49(Movie13)20191001	0	2
+RPE1Control	50(Movie15)20191001	0	0
+RPE1Control	51(Movie16)20191001	0	0
+RPE1Control	52(Movie17)20191001	0	0
+RPE1Control	53(Movie18)20191001	0	0
+RPE1Control	54(Movie19)2019100	0	0
+RPE1Control	55(Movie19)20191001	0	0
+RPE1Control	"movie 22, 20191001"	0	0
+RPE1Control	"movie22, 20191001"	0	0
+RPE1Control	56(Move23)20191001	0	2
+RPE1Control	57(Movie24)20191001	0	0
+RPE1Control	58(Movie24)20191001	0	0
+RPE1Control	59(Movie25)20191001	0	0
+RPE1Control	60(Movie25)20191001	0	0
+RPE1Control	"movie 25, 20191001"	0	0
+RPE1Control	61(Movie26)20191001	0	0
+RPE1Control	62(Movie28)20191001	0	0
+RPE1Control	63(Movie28)20191001	0	2
+RPE1Control	64(Movie29)20191001	0	0
+RPE1Control	65(Movie30)20191001	0	0
+RPE1Control	"movie 30, 20191001"	0	0
+RPE1Control	"movie 30, 20191001"	0	0
+RPE1Control	66(Movie31)20191001	0	0
+RPE1Control	67(Movie31)20191001	0	0
+RPE1Control	"Movie 31, 20191001"	0	0
+RPE1Control	68(Movie32)20191001	0	0
+RPE1Control	69(Movie32)20191001	0	0
+RPE1Control	70(Movie34)20191001	0	0
+RPE1Control	"Movie 34, 20191001"	0	0
+RPE1Control	"Movie25, 20191001"	0	0
+RPE1_sec61bGFP_control	6(Movie3)20190813	0	0
+RPE1_sec61bGFP_control	7(Movie13)20190813	0	0
+RPE1_sec61bGFP_control	8(Movie7)20190813	0	0
+RPE1_sec61bGFP_control	9(Movie3)20190820	0	0
+RPE1_sec61bGFP_control	10(Movie5)20190821	0	0
+RPE1_sec61bGFP_control	11(Movie17)20190821	0	0
+RPE1_sec61bGFP_control	12(Movie 2)20190920	0	0
+RPE1_sec61bGFP_control	13(Movie4)20190920	0	0
+RPE1_sec61bGFP_control	"Movie 4, 20190920"	0	0
+RPE1_sec61bGFP_control	"Movie4, 20190920"	0	0
+RPE1_sec61bGFP_control	"Movie4, 20190920"	0	0
+RPE1_sec61bGFP_control	14(Movie5)20190920	0	0
+RPE1_sec61bGFP_control	15(Movie 6)20190920	0	0
+RPE1_sec61bGFP_control	16(movie7)20190920	0	0
+RPE1_sec61bGFP_control	17(Movie7)20190920	0	0
+RPE1_sec61bGFP_control	18(Movie7)20190920	0	0
+RPE1_sec61bGFP_control	19(Movie7)20190920	0	0
+RPE1_sec61bGFP_control	"Movie 7, 20190920"	0	0
+RPE1_sec61bGFP_control	"Movie7, 20190920"	0	2
+RPE1_sec61bGFP_control	20(Movie 14)20190920	0	0
+RPE1_sec61bGFP_control	21(Movie14)20190920	0	0
+RPE1_sec61bGFP_control	"Movie 14, 20190920"	0	0
+RPE1_sec61bGFP_control	"Movie14, 20190920"	0	0
+RPE1_sec61bGFP_control	"Movie14, 20190920"	0	0
+RPE1_sec61bGFP_control	"Movie 14, 20190920"	0	0
+RPE1_sec61bGFP_control	21(Movie15)20190920	0	0
+RPE1_sec61bGFP_control	22(Movie15)20190920	0	0
+RPE1_sec61bGFP_control	23(Movie15)20190920	0	0
+RPE1_sec61bGFP_control	24(Movie15)20190920	0	0
+RPE1_sec61bGFP_control	25(Movie15)20190920	0	0
+RPE1_sec61bGFP_control	26(Movie16)20190920	0	0
+RPE1_sec61bGFP_control	27(Movie17)20190920	0	2
+RPE1_sec61bGFP_control	"Movie17, 20190920"	0	0
+RPE1_sec61bGFP_control	"Movie17, 20190920"	0	0
+RPE1_sec61bGFP_control	29(Movie19)20190920	0	0
+RPE1_sec61bGFP_control	30(Movie19)20190920	0	0
+RPE1_sec61bGFP_control	"Movie19, 20190920"	0	0
+RPE1_sec61bGFP_control	31(Movie20)20190920	0	0
+RPE1_sec61bGFP_control	"Movie20, 20190920"	0	0
+RPE1_sec61bGFP_control	"Movie20, 20190920"	0	0
+RPE1_sec61bGFP_control	"Movie20, 20190920"	0	2
+RPE1_sec61bGFP_control	33(Movie10)20190920	0	0
+RPE1_sec61bGFP_control	34(Movie10)20190920	0	0
+RPE1_sec61bGFP_control	35(Movie10)20190920	0	0
+RPE1_sec61bGFP_control	36(Movie3)20191001	0	0
+RPE1_sec61bGFP_control	37(Movie6)20191001	0	0
+RPE1_sec61bGFP_control	38(Movie7)20191001	0	2
+RPE1_sec61bGFP_control	39(Movie10)20191001	0	0
+RPE1_sec61bGFP_control	40(Movie14)20191001	0	0
+RPE1_sec61bGFP_control	"Movie14, 20191003_5h"	0	0
+RPE1_sec61bGFP_control	41(Movie15)20191003_5h	0	0
+RPE1_sec61bGFP_control	42(Movie15)20191003_5h	0	0
+RPE1_sec61bGFP_control	43(Movie16)20191003_5h	0	0
+RPE1_sec61bGFP_control	44(Movie24)20191003_5h	0	0
+RPE1_sec61bGFP_control	45(Movie1)20191003_problems	0	2
+RPE1_sec61bGFP_control	45(Movie1)20191003_problems	0	2
+RPE1_sec61bGFP_control	46(Movie6)20191003_problems	0	2
+RPE1_sec61bGFP_control	"Movie7, 20191003"	0	0
+RPE1_sec61bGFP_control	47(Movie7)20191003	0	2
+RPE1_sec61bGFP_control	48(Movie8)20191003	0	0
+RPE1_sec61bGFP_control	49(Movie10)20191003	0	0
+RPE1_sec61bGFP_control	50(Movie10)20191003 problems	0	2
+RPE1_sec61bGFP_control	51(Movie9)20191003	0	0
+RPE1_sec61bGFP_control	52(Movie13)20191003	0	0
+RPE1_sec61bGFP_control	54(Movie16)20191003	0	0
+RPE1_sec61bGFP_control	55(movie18)20191003	0	0
+RPE1_sec61bGFP_control	"movie19, 20191003"	0	0
+RPE1_sec61bGFP_control	56(Movie21)20191003	0	0
+RPE1_sec61bGFP_control	57(Movie23)20191003	0	0
