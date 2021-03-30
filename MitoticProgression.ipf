@@ -1,9 +1,15 @@
 #pragma TextEncoding = "UTF-8"
 #pragma rtGlobals=3		// Use modern global access method and strict wave access.
 
-// Data one the onset of three phases NEB, metaphase, anaphase is recorded (frame number)
-// in 3 columns per sheet (each sheet is a different condition)
+// Users record data in an Excel spreadsheet
+// User records the frame numbers for onset of three phases: NEB, metaphase, anaphase
+// in 3 columns per sheet (each sheet is a different condition - name is important)
 // Data should start at A1
+
+// At present the time step is hard coded as 3 min
+// Note that intervals of <= 0 are removed
+// Cumulative histograms show the full timescale of the data
+// Note that this means that failure to divide needs attention
 
 ////////////////////////////////////////////////////////////////////////
 // Menu items
@@ -106,19 +112,19 @@ Function CalculateTimings(rate)
 		Make/O/N=(nCell) $newName
 		Wave w1 = $newName
 		w1[] = (w0[p][1] - w0[p][0]) * rate
-		w1[] = (w1[p] < 0) ? NaN : w1[p] // correct any negative values
+		w1[] = (w1[p] <= 0) ? NaN : w1[p] // remove any negative or 0 values
 		// metaphase-to-anaphase
 		newName = ReplaceString("_frames",wName,"_MA")
 		Make/O/N=(nCell) $newName
 		Wave w1 = $newName
 		w1[] = (w0[p][2] - w0[p][1]) * rate
-		w1[] = (w1[p] < 0) ? NaN : w1[p]
+		w1[] = (w1[p] <= 0) ? NaN : w1[p]
 		// NEB-to-anaphase
 		newName = ReplaceString("_frames",wName,"_NA")
 		Make/O/N=(nCell) $newName
 		Wave w1 = $newName
 		w1[] = (w0[p][2] - w0[p][0]) * rate
-		w1[] = (w1[p] < 0) ? NaN : w1[p]
+		w1[] = (w1[p] <= 0) ? NaN : w1[p]
 		// Make 1D wave of NEB onset (used for plotting durations vs onset)
 		newName = ReplaceString("_frames",wName,"_onset")
 		Make/O/N=(nCell) $newName
@@ -166,12 +172,8 @@ Function MakeHistograms()
 			Wave w0 = $wName
 			histName = wName + "_hist"
 			Make/O/N=(ceil((maxLength) / 3) + 2) $histName
-//			Histogram/CUM/P/B={0,3,ceil((maxLength + 1) / 3)} w0,$histName
-			Histogram/CUM/B={0,3,ceil((maxLength) / 3) + 2} w0,$histName
+			Histogram/P/CUM/B={0,3,ceil((maxLength) / 3) + 2} w0,$histName
 			Wave w1 = $histName
-//			normVar = WaveMax(w1) // this normalises to max of cumHist
-			normVar = numpnts(w0)
-			w1 /= normVar
 			AppendToGraph/W=$plotName $histName
 			ModifyGraph/W=$plotName rgb($histName)=(colorWave[j][0],colorWave[j][1],colorWave[j][2],colorWave[j][3])
 			if(j > 0)
