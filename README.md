@@ -1,5 +1,18 @@
 # Misseg
 
+Code written for `ImageJ`, `R` and `IGOR Pro` to analyse data associated with manuscript `#p055p032`
+
+**Endomembranes promote chromosome missegregation by ensheathing misaligned chromosomes**
+
+Nuria Ferrandiz, Laura Downie, Georgina P. Starling, Stephen J Royle
+
+*bioRxiv* [link to follow](https://doi.org/)
+
+--
+
+**Important note:** This repo has been expanded significantly since this README was written.
+We will update the code and documentation over the next few days.
+
 A set of tools to analyse the spatial organisation of features in a cell, measure their intensity and generate averaged views of these features.
 
 In FIJI, the Cell Counter is used to highlight specific features of interest (and select some background regions). XML files from Cell Counter are saved to a directory.

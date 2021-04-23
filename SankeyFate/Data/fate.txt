@@ -12,7 +12,7 @@ sec61b+TTOGSK_2018-10-22	12 (Movie 14_wt)	0	0
 sec61b+TTOGSK_2018-10-22	13(Movie_14_missegregated_ensheathed_micronuclei)	2	1
 sec61b+TTOGSK_2018-10-24	14 (Movie 5 chromosomes missegregated_ensheathing_aneuploidy)	2	2
 sec61b+TTOGSK_2018-10-24	15 (Movie 5 chromosomes missegregated_ensheathing_aneuploidy)	2	2
-sec61b+TTOGSK_2018-10-24	16 (Movie 7  chromosome _no alignment_ensehathing_normal fate)	2	0
+sec61b+TTOGSK_2018-10-24	16 (Movie 7  chromosome _no alignment_N0 ensehathing_normal fate)	1	0
 sec61b+TTOGSK_2018-10-24	17 (Movie 7 chromosome_no alignment_ensehathing_apoptosis)	2	3
 sec61b+TTOGSK_2018-10-24	18 (Movie 8 chromosome_no alignement_no ensheathing_normal)	1	0
 sec61b+TTOGSK_2018-10-24	19 (Movie 8_WT)	0	0
@@ -40,12 +40,12 @@ sec61b+TTOGSK_2018-10-26	40 (Movie 5_Normal Mitosis)	0	0
 sec61b+TTOGSK_2018-10-26	41(Movie 5_chromosome_no alignment_ensheathing_aneuploidy)	2	2
 sec61b+TTOGSK_2018-10-26	42 (Movie 6_chromosome_no alignment_ensheathing_aneuploidy)	2	2
 sec61b+TTOGSK_2018-10-26	43 (Movie 7_chromosome_no alignment_ensheathing_aneuploidy)	2	2
-sec61b+TTOGSK_2018-10-26	44 (Movie 9_chromosome_no alignement_ensheathing_normal fate)	2	0
+sec61b+TTOGSK_2018-10-26	44 (Movie 9_chromosome_no alignement_ensheathing_normal fate)	2	1
 sec61b+TTOGSK_2018-10-26	45 (Moive 10_Chromosome_alignment_normal fate) No inicio	0	0
 sec61b+TTOGSK_2018-10-26	46( Movie 13_wt mitosis)	0	0
 sec61b+TTOGSK_2018-10-26	47 (Movie_13_ chromosome_no alignment_ensheathing_aneuploidy)	2	2
 sec61b+TTOGSK_2018-10-26	48 (Movie 15_chromosome_alignment_normal fate) I can not see initial point	0	0
-sec61b+TTOGSK_2018-10-30	49 (Movie 1_ensheathing_normal fate)	2	0
+sec61b+TTOGSK_2018-10-30	49 (Movie 1_no alignemnt_ensheathing_normal fate)	2	0
 sec61b+TTOGSK_2018-10-30	50 (Movie1_no alignment_ensheathing_aneuploidy_micronuclei)	2	1
 sec61b+TTOGSK_2018-10-30	51(Movie 1_no alignemnent_ensheathung_lagging_anueplodidy)	2	2
 sec61b+TTOGSK_2018-10-30	52( Movie 6_no alignment_ensehathing_micronuclei)	2	1
@@ -53,138 +53,139 @@ sec61b+TTOGSK_2018-10-30	53 (Movie_6_normal Mitosis)	0	0
 sec61b+TTOGSK_2018-10-30	54( Movie 7_no alignment properly_ensheathing_micronuclei)	2	1
 sec61b+TTOGSK_2018-10-30	55(Movie 7_no alignment_no ensheathing_lagging_aneuploidy)	1	2
 sec61b+TTOGSK_2018-10-30	56 (Movie 8_no alignment_ensheathing_micronuclei)	2	1
-sec61b+TTOGSK_2018-10-30	57(Movie 9_chromosome no alignment_ensheathing_normal fate??)	2	0
-sec61b+TTOGSK_2018-10-30	52( Movie 9_chromosome no alignment_ensheathing_aneuploidy)	2	2
-sec61b+TTOGSK_2018-10-30	53 (Movie 9_chromosome free_no ensheathing_Micronuclei from anaphase)	1	1
-sec61b+TTOGSK_2018-10-30	54( Movie 11_no alignment_ensheathing_normal fate)	2	0
-sec61b+TTOGSK_2018-10-30	55 (Movie11_normal Mitosis	0	0
-sec61b+TTOGSK_2018-10-30	56 (Movie 12_no alignment_ensheathing_aneuploidy_monster)	2	2
-sec61b+TTOGSK_2018-10-30	57 (Movie 12_no alignment_ensheathing_aneuploidy_monster)	2	2
-sec61b+TTOGSK_2018-10-30	58 (Movie 13_no alignment_ensheathing_normal fate)	2	0
-sec61b+TTOGSK_2018-10-30	59 (Movie 13_no alignment_ensheathing_apoptosis)	2	3
-sec61b+TTOGSK_2018-10-30	60 (Movie 14_no alignment_ensheathing_aneuploidy)	2	2
-sec61b+TTOGSK_2018-11-03	61 (Movie 1_no alignment_ensheathing_micronuclei)	2	1
-sec61b+TTOGSK_2018-11-03	62 (Movie 2_normal mitosis)	0	0
-sec61b+TTOGSK_2018-11-03	63 (Movie 2_no alignment_ensheathing_micronuclei)	2	1
-sec61b+TTOGSK_2018-11-03	64 (Movie 3_Normal Mitosis)	0	0
-sec61b+TTOGSK_2018-11-03	65 (Movie 3_Normal Mitosis)	0	0
-sec61b+TTOGSK_2018-11-03	66 (Movie 5_chromosome  no alignment_no ensheathing_ normal fate)	1	0
-sec61b+TTOGSK_2018-11-03	67 (Movie 7_no alignment_ensheathing_micronuclei)	2	1
-sec61b+TTOGSK_2018-11-03	68 (Movie 8_no alignment_ensheathing_micronuclei)	2	1
-sec61b+TTOGSK_2018-11-03	69 (Movie 9_no alignment_no ensheathing_lagging chromosome in  anaphase)	1	2
-sec61b+TTOGSK_2018-11-03	70 (Movie 10_Normal Mitosis)	0	0
-sec61b+TTOGSK_2018-11-03	71 (Movie 10_normal mitosis)	0	0
-sec61b+TTOGSK_2018-11-03	72 (Movie 11_no alignment_ensheathing_normal fate)	2	0
-sec61b+TTOGSK_2018-11-03	73 (Movie 12_no alignment_ensheathing_micronuclei)	2	1
-sec61b+TTOGSK_2018-11-03	74 (Movie 12_no alignment_ensheathing_micronuclei)	2	1
-sec61b+TTOGSK_2018-11-03	75 (Movie 3_no alignment_ensheathing_micronuclei)	2	1
-sec61b+TTOGSK_2018-11-06	79(Movie1__alignment_normal Mitosis)	0	0
-sec61b+TTOGSK_2018-11-06	80 (Movie1_alignment_anaphase bridge_normal fate)	0	0
-sec61b+TTOGSK_2018-11-06	81 (Movie1_alignment_normal fate)	0	0
-sec61b+TTOGSK_2018-11-06	82( Movie 4_no alignment_ensheathing_normal fate)	2	0
-sec61b+TTOGSK_2018-11-06	83 (Movie 5_normal Mitosis)	0	0
-sec61b+TTOGSK_2018-11-06	84(Movie 6_no alignment_ensheathing_normal fate)	2	0
-sec61b+TTOGSK_2018-11-06	85(Movie6_no alignment_ensheathing_aneuploidy)	2	2
-sec61b+TTOGSK_2018-11-06	86 (Movie6_Normal Mitosis)	0	0
-sec61b+TTOGSK_2018-11-06	87 (Movie 7_no alignment_ensheathing_normal fate)	2	0
-sec61b+TTOGSK_2018-11-06	88 (Movie 7_no alignment_ensheathing_normal fate)	2	0
-sec61b+TTOGSK_2018-11-06	89 (Movie 8_Normal Mitosis)	0	0
-sec61b+TTOGSK_2018-11-06	90 (Moive9_no alignement_no enehathing_normal fate)	0	0
-sec61b+TTOGSK_2018-11-06	91 (Movie 10_Normal Mitosis)	0	0
-sec61b+TTOGSK_2018-11-06	92 (Movie 11_no alignement_ensheathing_normal fate)	2	0
-sec61b+TTOGSK_2018-11-06	93 (Movie 12_normal mitosis)	0	0
-sec61b+TTOGSK_2018-11-06	94(Movie13_no alignement_ensheathing_micronuclei)	2	1
-sec61b+TTOGSK_2018-11-06	95 (Movie 14_no alignemnt_enehathiong_aneuploidy(	2	2
-sec61b+TTOGSK_2018-11-06	96(Movie14_no alignement_ensheathing_micronuclei)	2	1
-sec61b+TTOGSK_2018-11-09	97 (Movie 1_normal mitosis)	0	0
-sec61b+TTOGSK_2018-11-09	98(Movie1_no alignement_ensehathing_micronuclei)	2	1
-sec61b+TTOGSK_2018-11-09	99(Movie1_no alignement_ensehathing_micronuclei)	2	1
-sec61b+TTOGSK_2018-11-09	100(Movie 2_no alignment_ensheathing_micronuclei)	2	1
-sec61b+TTOGSK_2018-11-09	101(Movie3_no aligment_ensheathing_normal fate)	2	0
-sec61b+TTOGSK_2018-11-09	102(Movie4-no alignment_no ensheathing_normal fate)	2	0
-sec61b+TTOGSK_2018-11-09	103(Movie4_normal mitosis)	0	0
-sec61b+TTOGSK_2018-11-09	104(Movie6_no alignment_ensheathing_normal fate)	2	0
-sec61b+TTOGSK_2018-11-09	105(Movie6_no alignmnet_ensheathing_apoptosis)	2	3
-sec61b+TTOGSK_2018-11-09	106(Movie7_no alignment_no ensheathing_normal fate)	1	0
-sec61b+TTOGSK_2018-11-09	107(Movie7_normal Mitosis)	0	0
-sec61b+TTOGSK_2018-11-09	106 (Movie9_no alignment_ensheathing_micronuclei)	2	1
-sec61b+TTOGSK_2018-11-09	107(Movie9_noalignment_ensheathing_apoptosis)	2	3
-sec61b+TTOGSK_2018-11-09	108(Movie10_no alignment_no ensheathing_normal fate)	1	0
-sec61b+TTOGSK_2018-11-09	109(Movie10_noalignment_ensheathing_apoptosis)	2	3
-sec61b+TTOGSK_2018-11-09	110 (Movie11_noalignment_enseheathing_slippage)	2	2
-sec61b+TTOGSK_2018-11-09	111(Movie12_noalignment_ensheathing_slippage)	2	2
-sec61b+TTOGSK_2018-11-09	112(Movie13_noalignement_ensheathing_slippage)	2	1
-sec61b+TTOGSK_2018-11-09	113(movie14_noalignment_ensheathing_micronuclei)	2	1
-sec61b+TTOGSK_2018-11-09	114(movie14_noalignment_ensheathing_micronuclei)	2	1
-sec61b+TTOGSK_2018-11-09	115(movie14_noalignment_ensheathing_micronuclei)	2	1
-sec61b+TTOGSK_2018-11-09	116(movie14_noalignment_ensheathing_micronuclei)	2	1
-sec61b+TTOGSK_2018-11-09	117(movie14_noalignment_ensheathing_micronuclei)	2	1
-sec61b+TTOGSK_2018-11-09	118(movie14_normal mitosis)	0	0
-sec61b+TTOGSK_2018-11-14	119 (movie1_noalignment_ensheathing_aneuploidy_slippage)	2	2
-sec61b+TTOGSK_2018-11-14	120 (movie2_no alignment_ensheathing_normal fate)	2	0
-sec61b+TTOGSK_2018-11-14	121(movie2_no alignment_ensheathing_normal fate)	2	0
-sec61b+TTOGSK_2018-11-14	122(Movie3_noalignment_ensheathing_normal fate)	2	0
-sec61b+TTOGSK_2018-11-14	123(Movie4_noalignment_ensheathing_normal fate)	2	0
-sec61b+TTOGSK_2018-11-14	124(movie4_noalignment_ensheathing_micronuclei)	2	1
-sec61b+TTOGSK_2018-11-14	125(Movie5_noalignment_ensheathing_normal fate)	2	0
-sec61b+TTOGSK_2018-11-14	126(Movie6-noalignment_ensheathing_aneuploidy_look back)	2	2
-sec61b+TTOGSK_2018-11-14	127(Movie7_noalignment_ensheathing_normal fate)	2	0
-sec61b+TTOGSK_2018-11-14	128(Movie8_noalignment_ensheathing_normal divsion)	2	0
-sec61b+TTOGSK_2018-11-14	129(Movie8_noalignment_ensheathing_aneuploidy_bridge)	2	2
-sec61b+TTOGSK_2018-11-14	130(Movie8_noalignment_ensheathing_aneuploidy_bridge)	2	2
-sec61b+TTOGSK_2018-11-14	131(Movie8_alignment_normal division)	0	0
-sec61b+TTOGSK_2018-11-14	132(Movie9_noalignment_ensheathing_properdivision)	2	0
-sec61b+TTOGSK_2018-11-14	133(Movie9_noalignment_ensheathing_slippage)	2	2
-sec61b+TTOGSK_2018-11-14	134(Movie10_noalignment_ensheathing_slippage)	2	2
-sec61b+TTOGSK_2018-11-14	135(Movie10_alignment_bridge)	1	2
-sec61b+TTOGSK_2018-11-14	136(Movie10_noalignment_ensheathing_apoptosis)	2	3
-sec61b+TTOGSK_2018-11-14	137(Movie10_noalignment_enshething_micronuclei)	2	1
-sec61b+TTOGSK_2018-11-14	138(Movie11_noalignment_ensheathing_aneuploidy)	2	2
-sec61b+TTOGSK_2018-11-14	139(Movie11_noalignemnt_ensheathing_aneuploidy)	2	2
-sec61b+TTOGSK_2018-11-14	140(Movie12_noalignment_ensheathing_micronuclei)	2	1
-sec61b+TTOGSK_2018-11-14	141(Movie12_alignment_normal division)	0	0
-sec61b+TTOGSK_2018-11-14	141(MOVIE13_noalignment_ensheathing_micronuclei)	2	1
-sec61b+TTOGSK_2018-11-14	142(Movie14_noalignemnet_ensheathing_micronuclei)	2	1
-sec61b+TTOGSK_2018-16-11	143(Movie1_noalignment_ensheathing_micronuclei)	2	1
-sec61b+TTOGSK_2018-16-11	144(Movie1_proper alignment_normal division)	0	0
-sec61b+TTOGSK_2018-16-11	145(Movie2_proper_alignment_normal division)	0	0
-sec61b+TTOGSK_2018-16-11	146(Movi2_proper alignment_no ensheathing_bridge_aneuploidy)	0	2
-sec61b+TTOGSK_2018-16-11	147(Movie 2_no proper alignment_no ensheating_aneuploidy)	1	2
-sec61b+TTOGSK_2018-16-11	148(Movie3_no proper alignment_ensheating_normal fate)	2	0
-sec61b+TTOGSK_2018-16-11	149(Movie4_no proper alignment_ensheathing_micronuclei)	2	1
-sec61b+TTOGSK_2018-16-11	150(Movie5_no proper alignment_ensheathing_micronuclei)	2	1
-sec61b+TTOGSK_2018-16-11	151(Movie6_no proper alignment_ensheathing_normal division)	2	0
-sec61b+TTOGSK_2018-16-11	152(Movie6_proper alignment_no ensheathing_lagging chromosome)	0	2
-sec61b+TTOGSK_2018-16-11	153(Movie7_proper_alignment_no ensheathing_normal division)	0	0
-sec61b+TTOGSK_2018-16-11	154(Movie8_no alignment_ensheathing_normal division)	2	0
-sec61b+TTOGSK_2018-16-11	155(Movie8_no alignment_ensheathing_micronuclei)	2	1
-sec61b+TTOGSK_2018-16-11	156(Movie8_alignment_noensheathing_bridge)	1	2
-sec61b+TTOGSK_2018-16-11	157(Movie9_noalignment_ensheathing_apoptosis)	2	3
-sec61b+TTOGSK_2018-16-11	158(Movie9_noalignment_ensheathing_normal fate)	2	0
-sec61b+TTOGSK_2018-16-11	159(Movie9_no alignment_ensheathing_micronuclei)	2	1
-sec61b+TTOGSK_2018-16-11	160(Movie9_alignment_normal fate)	0	0
-sec61b+TTOGSK_2018-16-11	161(Movie10_noalignment_ensheathing_normal fate)	2	0
-sec61b+TTOGSK_2018-16-11	161(Movie10_noalignment_ensheathing_normal fate)	2	0
-sec61b+TTOGSK_2018-16-11	161(Movie11_no alignment_ensheathing_micronuclei)	2	1
-sec61b+TTOGSK_2018-16-11	162(Movie11_no alignment_ensheathing_micronuclei)	2	1
-sec61b+TTOGSK_2018-16-11	163(Movie12_noalignment_ensehathing_micronuclei)	2	1
-sec61b+TTOGSK_2018-16-11	164(Movie12_noalignment_ensehathing_micronuclei)	2	1
+sec61b+TTOGSK_2018-10-30	"57(Movie 9_chromosome no alignment_ensheathing_normal fate??, one chromosome show after MN but in metaphase and anapahse does not show it)"	2	0
+sec61b+TTOGSK_2018-10-30	58( Movie 9_chromosome no alignment_ensheathing_aneuploidy)	2	2
+sec61b+TTOGSK_2018-10-30	59 (Movie 9_chromosome free_no ensheathing_Micronuclei from anaphase)	1	1
+sec61b+TTOGSK_2018-10-30	60( Movie 11_no alignment_ensheathing_normal fate)	2	0
+sec61b+TTOGSK_2018-10-30	61 (Movie11_normal Mitosis	0	0
+sec61b+TTOGSK_2018-10-30	62 (Movie 12_no alignment_ensheathing_aneuploidy_monster)	2	2
+sec61b+TTOGSK_2018-10-30	63 (Movie 12_no alignment_ensheathing_aneuploidy_monster)	2	2
+sec61b+TTOGSK_2018-10-30	64 (Movie 13_no alignment_ensheathing_normal fate)	2	0
+sec61b+TTOGSK_2018-10-30	65 (Movie 13_no alignment_ensheathing_apoptosis)	2	3
+sec61b+TTOGSK_2018-10-30	66 (Movie 14_no alignment_ensheathing_aneuploidy)	2	2
+sec61b+TTOGSK_2018-11-03	67 (Movie 1_no alignment_ensheathing_micronuclei)	2	1
+sec61b+TTOGSK_2018-11-03	68 (Movie 2_normal mitosis)	0	0
+sec61b+TTOGSK_2018-11-03	69 (Movie 2_no alignment_ensheathing_micronuclei)	2	1
+sec61b+TTOGSK_2018-11-03	70 (Movie 3_Normal Mitosis)	0	0
+sec61b+TTOGSK_2018-11-03	71 (Movie 3_Normal Mitosis)	0	0
+sec61b+TTOGSK_2018-11-03	72 (Movie 5_chromosome  no alignment_no ensheathing_ normal fate)	1	0
+sec61b+TTOGSK_2018-11-03	73 (Movie 7_no alignment_ensheathing_micronuclei)	2	1
+sec61b+TTOGSK_2018-11-03	74 (Movie 8_no alignment_ensheathing_micronuclei)	2	1
+sec61b+TTOGSK_2018-11-03	75(Movie 9_no alignment_no ensheathing_lagging chromosome in  anaphase)	1	2
+sec61b+TTOGSK_2018-11-03	76 (Movie 10_Normal Mitosis)	0	0
+sec61b+TTOGSK_2018-11-03	77 (Movie 10_normal mitosis)	0	0
+sec61b+TTOGSK_2018-11-03	78 (Movie 11_no alignment_ensheathing_normal fate)	2	0
+sec61b+TTOGSK_2018-11-03	79 (Movie 12_no alignment_ensheathing_micronuclei)	2	1
+sec61b+TTOGSK_2018-11-03	80 (Movie 12_no alignment_ensheathing_micronuclei)	2	1
+sec61b+TTOGSK_2018-11-03	81 (Movie 3_no alignment_ensheathing_micronuclei)	2	1
+sec61b+TTOGSK_2018-11-06	82(Movie1__alignment_normal Mitosis)	0	0
+sec61b+TTOGSK_2018-11-06	83 (Movie1_alignment_anaphase bridge_normal fate)	0	0
+sec61b+TTOGSK_2018-11-06	84 (Movie1_alignment_normal fate)	0	0
+sec61b+TTOGSK_2018-11-06	85( Movie 4_no alignment_ensheathing_normal fate)	2	0
+sec61b+TTOGSK_2018-11-06	86 (Movie 5_normal Mitosis)	0	0
+sec61b+TTOGSK_2018-11-06	87(Movie 6_no alignment_ensheathing_normal fate)	2	0
+sec61b+TTOGSK_2018-11-06	88(Movie6_no alignment_ensheathing_aneuploidy)	2	2
+sec61b+TTOGSK_2018-11-06	89 (Movie6_Normal Mitosis)	0	0
+sec61b+TTOGSK_2018-11-06	90 (Movie 7_no alignment_ensheathing_normal fate)	2	0
+sec61b+TTOGSK_2018-11-06	91 (Movie 7_no alignment_ensheathing_MN)	2	1
+sec61b+TTOGSK_2018-11-06	92 (Movie 8_Normal Mitosis)	0	0
+sec61b+TTOGSK_2018-11-06	93 (Moive9_no alignement_no enehathing_normal fate)	0	0
+sec61b+TTOGSK_2018-11-06	94 (Movie 10_Normal Mitosis)	0	0
+sec61b+TTOGSK_2018-11-06	95 (Movie 11_no alignement_ensheathing_normal fate)	2	0
+sec61b+TTOGSK_2018-11-06	96(Movie 12_normal mitosis)	0	0
+sec61b+TTOGSK_2018-11-06	97(Movie13_no alignement_ensheathing_micronuclei)	2	1
+sec61b+TTOGSK_2018-11-06	98 (Movie 14_no alignemnt_enehathiong_aneuploidy(	2	2
+sec61b+TTOGSK_2018-11-06	99(Movie14_no alignement_ensheathing_micronuclei)	2	1
+sec61b+TTOGSK_2018-11-09	100 (Movie 1_normal mitosis)	0	0
+sec61b+TTOGSK_2018-11-09	101(Movie1_no alignement_ensehathing_micronuclei)	2	1
+sec61b+TTOGSK_2018-11-09	102(Movie1_no alignement_ensehathing_micronuclei)	2	1
+sec61b+TTOGSK_2018-11-09	103(Movie 2_no alignment_ensheathing_micronuclei)	2	1
+sec61b+TTOGSK_2018-11-09	104(Movie3_no aligment_No ensheathing_normal fate)	1	0
+sec61b+TTOGSK_2018-11-09	105(Movie4-no alignment_no ensheathing_normal fate)	1	0
+sec61b+TTOGSK_2018-11-09	106(Movie4_normal mitosis)	0	0
+sec61b+TTOGSK_2018-11-09	107(Movie6_no alignment_ensheathing_normal fate)	2	0
+sec61b+TTOGSK_2018-11-09	108(Movie6_no alignmnet_ensheathing_apoptosis)	2	3
+sec61b+TTOGSK_2018-11-09	109(Movie7_no alignment_no ensheathing_normal fate)	1	0
+sec61b+TTOGSK_2018-11-09	110(Movie7_normal Mitosis)	0	0
+sec61b+TTOGSK_2018-11-09	111 (Movie9_no alignment_ensheathing_micronuclei)	2	1
+sec61b+TTOGSK_2018-11-09	112(Movie9_noalignment_ensheathing_apoptosis)	2	3
+sec61b+TTOGSK_2018-11-09	113(Movie10_no alignment_no ensheathing_normal fate)	1	0
+sec61b+TTOGSK_2018-11-09	114(Movie10_noalignment_ensheathing_apoptosis)	2	3
+sec61b+TTOGSK_2018-11-09	115 (Movie11_noalignment_enseheathing_slippage)	2	2
+sec61b+TTOGSK_2018-11-09	116(Movie12_noalignment_ensheathing_slippage)	2	2
+sec61b+TTOGSK_2018-11-09	117(Movie13_noalignement_ensheathing_slippage)	2	1
+sec61b+TTOGSK_2018-11-09	118(movie14_noalignment_ensheathing_micronuclei)	2	1
+sec61b+TTOGSK_2018-11-09	119(movie14_noalignment_ensheathing_micronuclei)	2	1
+sec61b+TTOGSK_2018-11-09	120(movie14_noalignment_ensheathing_micronuclei)	2	1
+sec61b+TTOGSK_2018-11-09	121(movie14_noalignment_ensheathing_micronuclei)	2	1
+sec61b+TTOGSK_2018-11-09	122(movie14_noalignment_ensheathing_micronuclei)	2	1
+sec61b+TTOGSK_2018-11-09	123(movie14_normal mitosis)	0	0
+sec61b+TTOGSK_2018-11-14	124 (movie1_noalignment_ NO ensheathing_aneuploidy_slippage)	1	2
+sec61b+TTOGSK_2018-11-14	125 (movie2_no alignment_ensheathing_normal fate)	2	0
+sec61b+TTOGSK_2018-11-14	126(movie2_no alignment_ensheathing_normal fate)	2	0
+sec61b+TTOGSK_2018-11-14	127(Movie3_alignment_NO_ensheathing_normal fate)	0	0
+sec61b+TTOGSK_2018-11-14	128(Movie4_noalignment_ensheathing_normal fate)	2	0
+sec61b+TTOGSK_2018-11-14	129(movie4_noalignment_ensheathing_micronuclei)	2	1
+sec61b+TTOGSK_2018-11-14	130(Movie5_noalignment_ensheathing_normal fate)	2	0
+sec61b+TTOGSK_2018-11-14	131(Movie6-noalignment_ensheathing_aneuploidy_look back)	2	2
+sec61b+TTOGSK_2018-11-14	132(Movie7_noalignment_ensheathing_normal fate)	2	0
+sec61b+TTOGSK_2018-11-14	133(Movie8_noalignment_ensheathing_normal divsion)	2	0
+sec61b+TTOGSK_2018-11-14	134(Movie8_noalignment_ensheathing_aneuploidy_bridge)	2	2
+sec61b+TTOGSK_2018-11-14	135(Movie8_noalignment_ensheathing_aneuploidy_bridge)	2	2
+sec61b+TTOGSK_2018-11-14	136(Movie8_alignment_normal division)	0	0
+sec61b+TTOGSK_2018-11-14	137(Movie9_noalignment_ensheathing_properdivision)	2	0
+sec61b+TTOGSK_2018-11-14	138(Movie9_noalignment_ensheathing_slippage)	2	2
+sec61b+TTOGSK_2018-11-14	139(Movie10_noalignment_ensheathing_slippage)	2	2
+sec61b+TTOGSK_2018-11-14	140(Movie10_alignment_bridge)	1	2
+sec61b+TTOGSK_2018-11-14	141(Movie10_noalignment_ensheathing_apoptosis)	2	3
+sec61b+TTOGSK_2018-11-14	142(Movie10_noalignment_enshething_micronuclei)	2	1
+sec61b+TTOGSK_2018-11-14	143(Movie11_noalignment_ensheathing_aneuploidy)	2	2
+sec61b+TTOGSK_2018-11-14	144(Movie11_noalignemnt_ensheathing_aneuploidy)	2	2
+sec61b+TTOGSK_2018-11-14	145(Movie12_noalignment_ensheathing_micronuclei)	2	1
+sec61b+TTOGSK_2018-11-14	146(Movie12_alignment_normal division)	0	0
+sec61b+TTOGSK_2018-11-14	147(MOVIE13_noalignment_ensheathing_micronuclei)	2	1
+sec61b+TTOGSK_2018-11-14	148(Movie14_noalignemnet_ensheathing_micronuclei)	2	1
+sec61b+TTOGSK_2018-16-11	150(Movie1_noalignment_ensheathing_micronuclei)	2	1
+sec61b+TTOGSK_2018-16-11	151(Movie1_proper alignment_normal division)	0	0
+sec61b+TTOGSK_2018-16-11	152(Movie2_proper_alignment_normal division)	0	0
+sec61b+TTOGSK_2018-16-11	153(Movi2_proper alignment_no ensheathing_bridge_aneuploidy)	0	2
+sec61b+TTOGSK_2018-16-11	154(Movie 2_no proper alignment_no ensheating_aneuploidy)	1	2
+sec61b+TTOGSK_2018-16-11	155(Movie3_no proper alignment_ensheating_No normal fate)	2	2
+sec61b+TTOGSK_2018-16-11	156(Movie4_no proper alignment_ensheathing_micronuclei)	2	1
+sec61b+TTOGSK_2018-16-11	157(Movie5_no proper alignment_ensheathing_micronuclei)	2	1
+sec61b+TTOGSK_2018-16-11	158(Movie6_no proper alignment_ensheathing_normal division)	2	0
+sec61b+TTOGSK_2018-16-11	159(Movie6_proper alignment_no ensheathing_lagging chromosome)	0	2
+sec61b+TTOGSK_2018-16-11	160(Movie7_proper_alignment_no ensheathing_normal division)	0	0
+sec61b+TTOGSK_2018-16-11	161(Movie8_no alignment_ensheathing_normal division)	2	0
+sec61b+TTOGSK_2018-16-11	162(Movie8_no alignment_ensheathing_micronuclei)	2	1
+sec61b+TTOGSK_2018-16-11	163(Movie8_alignment_noensheathing_bridge)	1	2
+sec61b+TTOGSK_2018-16-11	164(Movie9_noalignment_ensheathing_apoptosis)	2	3
+sec61b+TTOGSK_2018-16-11	165(Movie9_noalignment_ensheathing_normal fate)	2	0
+sec61b+TTOGSK_2018-16-11	166(Movie9_no alignment_ensheathing_micronuclei)	2	1
+sec61b+TTOGSK_2018-16-11	167(Movie9_alignment_normal fate)	0	0
+sec61b+TTOGSK_2018-16-11	"161,pp['(Movie10_noalignment_ensheathing_normal fate)"	2	0
+sec61b+TTOGSK_2018-16-11	161 plus (Movie _10 no alignement_no ensheathing_normal fate	1	0
+sec61b+TTOGSK_2018-16-11	162(Movie10_noalignment_ensheathing_normal fate)	2	0
+sec61b+TTOGSK_2018-16-11	163(Movie11_no alignment_ensheathing_micronuclei)	2	1
+sec61b+TTOGSK_2018-16-11	164(Movie11_no alignment_ensheathing_micronuclei)	2	1
 sec61b+TTOGSK_2018-16-11	165(Movie12_noalignment_ensehathing_micronuclei)	2	1
 sec61b+TTOGSK_2018-16-11	166(Movie12_noalignment_ensehathing_micronuclei)	2	1
-sec61b+TTOGSK_2018-16-11	167(Movie12_alignment_normal fate)	0	0
-sec61b+TTOGSK_2018-16-11	168(Movie12_alignment_noensehating_chromosome bridge)	0	2
-sec61b+TTOGSK_2018-16-11	169(Movie13_alignment_normal division)	0	0
-sec61b+TTOGSK_2018-16-11	170(Movie13_noalignment_ensheathing_normal fate)	2	0
-sec61b+TTOGSK_2018-16-11	171(Movie14_no alignment_ensheating_micronuclei)	2	1
-sec61b+TTOGSK_2018-16-11	172(movie15_noalignment_ensheathing_normal fate)	2	0
-sec61b+TTOGSK_2018-16-11	173(movie15_noalignment_ensheathing_normal fate)	2	0
+sec61b+TTOGSK_2018-16-11	167(Movie12_noalignment_ensehathing_micronuclei)	2	1
+sec61b+TTOGSK_2018-16-11	168(Movie12_noalignment_ensehathing_micronuclei)	2	1
+sec61b+TTOGSK_2018-16-11	169(Movie12_alignment_normal fate)	0	0
+sec61b+TTOGSK_2018-16-11	1710(Movie12_alignment_noensehating_chromosome bridge)	0	2
+sec61b+TTOGSK_2018-16-11	171(Movie13_alignment_normal division)	0	0
+sec61b+TTOGSK_2018-16-11	172(Movie13_noalignment_ensheathing_normal fate)	2	0
+sec61b+TTOGSK_2018-16-11	173(Movie14_no alignment_ensheating_micronuclei)	2	1
 sec61b+TTOGSK_2018-16-11	174(movie15_noalignment_ensheathing_normal fate)	2	0
-sec61b+TTOGSK_2018-16-11	175(movie15_noalignment_ensheathing_micronuclei)	2	1
-sec61b+TTOGSK_2018-16-11	176(Movie16_no aloignment_ensheahing_normal fate)	2	0
-sec61b+TTOGSK_2018-16-11	177 (Movie16_no alignment_no ensheathing_normal fate)	1	0
-sec61b+TTOGSK_2018-16-11	178(Movie17_no alignment_ensheathing_micronuclei)	2	1
-sec61b+TTOGSK_2018-16-11	179(Movie18_no alignment_ensheathing_micronuclei)	2	1
-sec61b+TTOGSK_2018-16-11	180(Movie18_noalignment_ensheathing_normal fate)	2	0
+sec61b+TTOGSK_2018-16-11	175(movie15_noalignment_ensheathing_normal fate)	2	0
+sec61b+TTOGSK_2018-16-11	176(movie15_alignment_normal fate)	0	0
+sec61b+TTOGSK_2018-16-11	177(movie15_noalignment_ensheathing_micronuclei)	2	1
+sec61b+TTOGSK_2018-16-11	178(Movie16_no aloignment_ensheahing_normal fate)	2	0
+sec61b+TTOGSK_2018-16-11	179 (Movie16_no alignment_no ensheathing_normal fate)	1	0
+sec61b+TTOGSK_2018-16-11	180(Movie17_no alignment_ensheathing_micronuclei)	2	1
+sec61b+TTOGSK_2018-16-11	181(Movie18_no alignment_ensheathing_micronuclei)	2	1
+sec61b+TTOGSK_2018-16-11	182(Movie18_noalignment_ensheathing_normal fate)	2	0
 RPE1Control	1(Movie1)20190928	0	0
 RPE1Control	2(Movie 1)20190928	0	2
 RPE1Control	3(Movie2)20190928	0	0
