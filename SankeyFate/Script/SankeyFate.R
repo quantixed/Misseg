@@ -20,11 +20,25 @@ count_gsk <- ddply(df_gsk, c("Class","Fate"), summarise, Value = length(Cell))
 count_parental <- ddply(df_parental, c("Class","Fate"), summarise, Value = length(Cell))
 count_control <- ddply(df_control, c("Class","Fate"), summarise, Value = length(Cell))
 
+my_color <- 'd3.scaleOrdinal() .domain(["Aligned", "Ensheathed", "Misaligned", "Normal", "Micronuclei", "Defects", "Death"]) .range(["green", "red" , "pink", "green", "orange", "yellow", "black"])'
+
 sankey_list <- list(df_labels,count_gsk)
-sankey_list <- list(df_labels,count_parental)
-sankey_list <- list(df_labels,count_control)
-my_color <- 'd3.scaleOrdinal() .domain(["Aligned", "Ensheathed", "Misaligned", "Normal", "Micronuclei", "Aneuploidy", "Death"]) .range(["green", "red" , "pink", "green", "orange", "yellow", "black"])'
 sankeyNetwork(Links = sankey_list[[2]], Nodes = sankey_list[[1]], Source = "Class",
               Target = "Fate", Value = "Value", NodeID = "Label",
               colourScale = my_color,
               fontSize = 24, nodeWidth = 30, fontFamily = "Helvetica")
+rstudioapi::executeCommand("viewerSaveAsWebPage")
+
+sankey_list <- list(df_labels,count_parental)
+sankeyNetwork(Links = sankey_list[[2]], Nodes = sankey_list[[1]], Source = "Class",
+              Target = "Fate", Value = "Value", NodeID = "Label",
+              colourScale = my_color,
+              fontSize = 24, nodeWidth = 30, fontFamily = "Helvetica")
+rstudioapi::executeCommand("viewerSaveAsWebPage")
+
+sankey_list <- list(df_labels,count_control)
+sankeyNetwork(Links = sankey_list[[2]], Nodes = sankey_list[[1]], Source = "Class",
+              Target = "Fate", Value = "Value", NodeID = "Label",
+              colourScale = my_color,
+              fontSize = 24, nodeWidth = 30, fontFamily = "Helvetica")
+rstudioapi::executeCommand("viewerSaveAsWebPage")

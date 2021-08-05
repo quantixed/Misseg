@@ -1,8 +1,8 @@
 ﻿LabelIndex,Label
-0,Aligned
-1,Misaligned
-2,Ensheathed
-3,Normal
+0,Free
+1,Ensheathed
+2,Aligned
+3,Rescue
 4,Micronuclei
 5,Defects
 6,Death
