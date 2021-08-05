@@ -9,7 +9,7 @@ df_data <- read.delim("Data/chrfate.txt", sep = "\t", header = TRUE, stringsAsFa
 count_data <- ddply(df_data, c("chromosomeClass","chromosomeFate"), summarise, Value = length(chromosomeClass))
 
 sankey_list <- list(df_labels,count_data)
-my_color <- 'd3.scaleOrdinal() .domain(["Free", "Ensheathed", "Aligned", "Rescue", "Micronuclei", "Aneuploidy", "Death"]) .range(["green", "red" , "pink", "green", "orange", "yellow", "black"])'
+my_color <- 'd3.scaleOrdinal() .domain(["Free", "Ensheathed", "Aligned", "Rescue", "Micronuclei", "Defects", "Death"]) .range(["blue", "orange" , "gray", "green", "black", "black", "black"])'
 sankeyNetwork(Links = sankey_list[[2]], Nodes = sankey_list[[1]], Source = "chromosomeClass",
               Target = "chromosomeFate", Value = "Value", NodeID = "Label",
               colourScale = my_color,

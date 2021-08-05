@@ -20,7 +20,7 @@ count_gsk <- ddply(df_gsk, c("Class","Fate"), summarise, Value = length(Cell))
 count_parental <- ddply(df_parental, c("Class","Fate"), summarise, Value = length(Cell))
 count_control <- ddply(df_control, c("Class","Fate"), summarise, Value = length(Cell))
 
-my_color <- 'd3.scaleOrdinal() .domain(["Aligned", "Ensheathed", "Misaligned", "Normal", "Micronuclei", "Defects", "Death"]) .range(["green", "red" , "pink", "green", "orange", "yellow", "black"])'
+my_color <- 'd3.scaleOrdinal() .domain(["Aligned", "Free", "Ensheathed", "Normal", "Micronuclei", "Defects", "Death"]) .range(["gray", "blue" , "orange", "black", "black", "black", "black"])'
 
 sankey_list <- list(df_labels,count_gsk)
 sankeyNetwork(Links = sankey_list[[2]], Nodes = sankey_list[[1]], Source = "Class",
