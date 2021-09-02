@@ -58,11 +58,17 @@ These outputs can be found in `data.zip` and can be processed after extraction, 
 
 Outputs are saved in `Output/` using `Micronuclei/` working directory.
 
-## Progression
+## MnQuant
 
-An Igor script to process frame numbers from overnight movies and generate the cumulative histograms.
-
+ImageJ scripts were used to generate the orthogonal views shown in the figure as well as do the quantification of micronuclei.
+Outputs from the quantification scripts are in `Data/` for LBR and BAF.
+For space reasons, TIFFs and Masks are not included.
+The `processMNQuant.R` script will read these files and generate the plots in `Output/Plots/`
 
 ## Sankey Fate
 
 An R-based script to generate Sankey diagrams from manual fate mapping.
+
+## Notes
+
+Mitotic progression figures were generated using [MitoticTiming](https://github.com/quantixed/MitoticTiming)
