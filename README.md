@@ -12,14 +12,13 @@ Nuria Ferrandiz, Laura Downie, Georgina P. Starling, Stephen J Royle
 
 ## Misseg
 
-The main program in this repo is `Misseg/Misseg/ipf`.
+The main program in this repo is `Misseg/Misseg.ipf`.
 Full details of how to use it with `IGOR Pro` can be found in `Misseg/README.md`
 
 The other directories are:
 
 - [ERRemoval](#er-removal)
 - [kinetochoreColoc](#kinetochore-coloc)
-- [Micronuclei](#micronuclei)
 - [Progression](#progression)
 - [SankeyFate](#sankey-fate)
 
@@ -50,13 +49,11 @@ A series of scripts to examine co-localisation of kinetochore signals in 3D imag
 
 The classifier above allows a user to scroll through a Z-stack and classify kinetochores as Aligned, Misaligned (called Free in the paper) or Misaligned - ER (called Ensheathed in the paper).
 
-## Micronuclei
+## Mad2
 
-R scripts to analyse data from ImageJ.
-Images were segemented and analysed in the same way as for congression analysis, with an additional step to extract mean intensities for the chromosomes and main mass.
-These outputs can be found in `data.zip` and can be processed after extraction, using the scripts in `Script/`
+These experiments were analysed in Igor using `Mad2/ChromosomeCongression.ipf` by processing csv outputs generated in Fiji using `Mad2/ChromosomeCongressionMagicWand.ijm`
 
-Outputs are saved in `Output/` using `Micronuclei/` working directory.
+The method for chromosome and plate objects segmentation is as described for ER Clearance above.
 
 ## MnQuant
 
