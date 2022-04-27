@@ -6,7 +6,7 @@ Code written for `ImageJ`, `R` and `IGOR Pro` to analyse data associated with ma
 
 Nuria Ferrandiz, Laura Downie, Georgina P. Starling, Stephen J Royle
 
-*bioRxiv* doi: [10.1101/2021.04.23.441091](https://doi.org/10.1101/2021.04.23.441091)
+*J Cell Biol*, (2022) 221: e202203021 doi: [10.1083/jcb.202203021](https://doi.org/10.1083/jcb.202203021)
 
 --
 
